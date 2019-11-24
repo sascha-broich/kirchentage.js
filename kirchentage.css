@@ -1,0 +1,110 @@
+input, select, button {
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    border: 1px solid black;
+    height: 2.5em;
+    padding: 0 .5em;
+}
+
+input[type="number"] {
+    text-align: right;
+}
+
+span.label,
+label {
+    line-height: 2.5em;
+}
+
+header {
+    font-size: 150%;
+    margin: 10px;
+}
+
+div#tabs {
+    width: 100%;
+    display: flex;
+}
+
+div#tabs > button {
+    flex-grow: 1;
+    border: none;
+    background: lightgray;
+    padding: 10px 5px
+}
+
+div#tabs > button:not(:first-child) {
+    border-left: solid black 1px;
+}
+
+div#tabs > button.active {
+    background: darkgray;
+    color: white;
+    font-weight: bold;
+} 
+
+section {
+    display: none;
+}
+
+section.active {
+    display: block;
+}
+
+section > .row {
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+} 
+
+section > .row > *:not(:first-child) {
+    margin: .5em 0 0 0;
+}
+
+@media screen and (min-width: 321px) {
+    section > .row {
+        display: flex;
+        flex-direction: row;  
+        flex-wrap: wrap;
+    } 
+
+    section > .row > *:not(:first-child) {
+        margin: 0 0 0 .5em;
+    }
+
+    input[type="number"] {
+        width: 5em;
+    }
+    
+    .toggle {
+        width: 8em;
+        text-align: center;
+    }
+
+    section#alter div:nth-child(2n) {
+        margin-left: 1em;
+    }
+}    
+
+section#wochentage #wochentage-kalender {
+    display: grid;
+    grid-template-columns: repeat(7, 3em);
+    grid-gap: 0px;
+}
+
+section#wochentage #wochentage-kalender > .dom {
+    height: 2.5em;
+    line-height: 2.5em;
+    border: solid 1px black;
+}
+
+section#wochentage #wochentage-kalender > span {
+    font-weight: bold;
+    background: lightgray;
+    text-align: center;
+    padding-top: .1em;
+}
+
+section#wochentage #wochentage-kalender > button {
+    text-align: right;
+}

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Kirchentage - Kalender-Berechnungen</title>
+        <link rel="stylesheet" href="kirchentage.css"/>
+        <script type="text/javascript" src="kirchentage.js" ></script>
+    </head>
+    <body>
+        <header>Berechnung von Kalenderdaten anhand von Kirchentagen, Wochentage, Altersbestimmung</header>
+        <div id="tabs">
+            <button id="tab-wochentage" class="active" onclick="openTab(this)">Monatskalender</button>
+            <button id="tab-alter" onclick="openTab(this)">Altersbestimmung</button>
+            <button id="tab-kirchentag" onclick="openTab(this)">Kirchentag</button>
+        </div>
+        <section id="wochentage">
+            <div class="row">
+                <select id="wochentage-monat">
+                    <option value="0">Januar</option>
+                    <option value="1">Februar</option>
+                    <option value="2">März</option>
+                    <option value="3">April</option>
+                    <option value="4">Mai</option>
+                    <option value="5">Juni</option>
+                    <option value="6">Juli</option>
+                    <option value="7">August</option>
+                    <option value="8">September</option>
+                    <option value="9">Oktober</option>
+                    <option value="10">November</option>
+                    <option value="11">Dezember</option>
+                </select>
+                <input type="number" id="wochentage-jahr" value="2019"/>
+                <button id="wochentage-toggle" class="toggle" value="0" onclick="toggle(this)" title="Zwischen Gregorianischem und Julianischem Kalender umschalten">Gregorianisch</button>
+            </div>
+            <div id="wochentage-kalender">
+                <span class="dom">Mo</span><span class="dom">Di</span><span class="dom">Mi</span><span class="dom">Do</span><span class="dom">Fr</span><span class="dom">Sa</span><span class="dom">So</span>
+                <button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button>
+                <button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button>
+                <button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button>
+                <button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button>
+                <button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button>
+            </div>
+        </section>
+        <section id="alter" class="active">
+            <div class="row">
+                <label for="alter-start">*</label>
+                <input type="date" id="alter-geburt" title="Geburtsdatum" placeholder=""/>
+                <button title="Geburtsdatum ermitteln">?</button>
+            </div>
+            <div class="row">                
+                <input type="number" id="alter-jahre" title="Anzahl Jahre"/>
+                <label for="alter-jahre">Jahre</label>
+                <input type="number" id="alter-monate" title="Anzahl Monate"/>
+                <label for="alter-monate">Monate</label>
+                <input type="number" id="alter-wochen" title="Anzahl Wochen"/>
+                <label for="alter-wochen">Wochen</label>
+                <input type="number" id="alter-tage" title="Anzahl Tage"/>
+                <label for="alter-tage">Tage</label>
+            </div>
+            <div class="row">
+                <label for="alter-tod">+</label>
+                <input type="date" id="alter-tod" title="Sterbedatum" />
+                <button title="Sterbedatum ermitteln">?</button>
+            </div>
+            <div class="row">
+                <button id="alter-toggle" class="toggle" value="0" onclick="toggle(this)" title="Zwischen Gregorianischem und Julianischem Kalender umschalten">Gregorianisch</button>
+            </div>
+        </section>
+        <section id="kirchentag">
+
+        </section>
+    </body>
+</html>

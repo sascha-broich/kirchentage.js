@@ -14,9 +14,9 @@
             <button id="tab-alter" onclick="openTab(this)">Altersbestimmung</button>
             <button id="tab-kirchentag" onclick="openTab(this)">Kirchentag</button>
         </div>
-        <section id="wochentage">
+        <section id="wochentage" class="active">
             <div class="row">
-                <select id="wochentage-monat">
+                <select id="wochentage-monat" onchange="setDaysOfMonth()">
                     <option value="0">Januar</option>
                     <option value="1">Februar</option>
                     <option value="2">März</option>
@@ -30,8 +30,8 @@
                     <option value="10">November</option>
                     <option value="11">Dezember</option>
                 </select>
-                <input type="number" id="wochentage-jahr" value="2019"/>
-                <button id="wochentage-toggle" class="toggle" value="0" onclick="toggle(this)" title="Zwischen Gregorianischem und Julianischem Kalender umschalten">Gregorianisch</button>
+                <input type="number" id="wochentage-jahr" value="2019" onchange="setDaysOfMonth()"/>
+                <button id="wochentage-toggle" class="toggle" value="0" onclick="toggle(this);setDaysOfMonth();" title="Zwischen Gregorianischem und Julianischem Kalender umschalten">Gregorianisch</button>
             </div>
             <div id="wochentage-kalender">
                 <span class="dom">Mo</span><span class="dom">Di</span><span class="dom">Mi</span><span class="dom">Do</span><span class="dom">Fr</span><span class="dom">Sa</span><span class="dom">So</span>
@@ -40,9 +40,10 @@
                 <button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button>
                 <button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button>
                 <button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button>
+                <button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button>
             </div>
         </section>
-        <section id="alter" class="active">
+        <section id="alter">
             <div class="row">
                 <label for="alter-start">*</label>
                 <input type="date" id="alter-geburt" title="Geburtsdatum" placeholder=""/>
@@ -68,7 +69,44 @@
             </div>
         </section>
         <section id="kirchentag">
-
+            <div class="row">
+                <input type="number" id="kirchentag-number"/>
+                <label for="kirchentag-number">.</label>
+                <select id="kirchentag-dow" class="showAll" size="8">
+                    <option value="0" selected>Tag</option>
+                    <option value="1">Montag</option>
+                    <option value="2">Dienstag</option>
+                    <option value="3">Mittwoch</option>
+                    <option value="4">Donnerstag</option>
+                    <option value="5">Freitag</option>
+                    <option value="6">Samstag</option>
+                    <option value="7">Sonntag</option>
+                </select>
+                <select id="kirchentag-rel" class="showAll" size="3">
+                    <option value="-1">vor</option>
+                    <option value="0" selected>genau</option>
+                    <option value="1">nach</option>
+                </select>
+                <select id="kirchentag-tag" class="showAll" size="20">
+                    <option selected>Ostern</option>
+                    <option>Weihnachten</option>
+                </select>
+                <input type="number" id="kirchentag-jahr" title="Jahr" value="2019"/>
+                <table>
+                    <tbody>
+                        <tr>
+                            <th>julianisch</th>
+                            <td id="kirchentag-datum-jul">20.10.2010</td>
+                            <td id="kirchentag-dow-jul">Montag</td>
+                        </tr>
+                        <tr>
+                            <th>gregorianisch</th>
+                            <td id="kirchentag-datum-gre">20.10.2010</td>
+                            <td id="kirchentag-dow-gre">Montag</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </section>
     </body>
 </html>

@@ -84,6 +84,13 @@ section > .row > *:not(:first-child) {
     section#alter div:nth-child(2n) {
         margin-left: 1em;
     }
+    
+    select.showAll {
+        height: auto;
+        overflow-y: auto;
+        scrollbar-width: none;
+    }
+
 }    
 
 section#wochentage #wochentage-kalender {
@@ -107,4 +114,23 @@ section#wochentage #wochentage-kalender > span {
 
 section#wochentage #wochentage-kalender > button {
     text-align: right;
+}
+
+select.showAll > option {
+    height: 1em;
+    padding: .5em;
+}
+
+section#kirchentag table th {
+    text-align: left;    
+    padding: .5em;
+}
+
+section#kirchentag table th:after {
+    content: ":";
+}
+
+section#kirchentag table td {
+    border: solid 1px grey;
+    padding: .5em;
 }

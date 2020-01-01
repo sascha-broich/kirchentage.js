@@ -46,15 +46,121 @@ window.onload=function () {
     loadChurchDays();
 }
 
-GregorianCalendar = class {
-    constructor(year, month, day, julian=false) {
+Calendar = class {
+    YEAR = 1;
+    MONTH = 2;
+    WEEK_OF_YEAR = 3;
+    WEEK_OF_MONTH = 4;
+    DATE = 5;
+    DAY_OF_MONTH = 5;
+    DAY_OF_YEAR = 6;
+    DAY_OF_WEEK = 7;
 
+    SUNDAY = 7;
+}
+
+GregorianCalendar = class extends Calendar {
+    julianDay;
+    julian=false;
+    firstGregorianDay=2299159.5;
+
+    constructor(year, month, day, julian=false) {
+        this.setJulian(julian);
+        this.set(year,month,day);
     }
 
     setJulian(julian) {
+        this.julian=julian;
     }
 
+    set(year,month,day) {
+        let switchDate=this.calc(this.firstGregorianDay);
+        if(this.julian || (year < switchDate.year) || (month < switchDate.month) || day < switchDate.day) {
+            // https://en.wikipedia.org/wiki/Julian_day#Converting_Julian_calendar_date_to_Julian_Day_Number
+            this.julianDay = 367 * year - (7 * (year + 5001 + (month - 9)/7))/4 + (275 * month)/9 + day + 1729777;
+        } 
+        else {
+            // https://en.wikipedia.org/wiki/Julian_day#Converting_Gregorian_calendar_date_to_Julian_Day_Number
+            // JDN = (1461 * (Y + 4800 + (M - 14)/12))/4 +(367 * (M - 2 - 12 * ((M - 14)/12)))/12 - (3 * ((Y + 4900 + (M - 14)/12)/100))/4 + D - 32075
+            this.julianDay = (1461 * (year + 4800 + (month - 14)/12))/4 +(367 * (month - 2 - 12 * ((month - 14)/12)))/12 - (3 * ((year + 4900 + (month - 14)/12)/100))/4 + day - 32075;
+        }
+    }
+
+    setFirstGregorianDay(year,month,day) {
+        this.firstGregorianDay = (1461 * (year + 4800 + (month - 14)/12))/4 +(367 * (month - 2 - 12 * ((month - 14)/12)))/12 - (3 * ((year + 4900 + (month - 14)/12)/100))/4 + day - 32075;
+    }
+
+    calc(J=this.julianDay) {
+        let y=4716;
+        let v=3;
+        let j=1401;
+        let u=5;
+        let m=2;
+        let s=153;
+        let n=12;
+        let w=2;
+        let r=4;
+        let B=274277;
+        let p=1461;
+        let C=-38;
+
+        if(this.julian || J < this.firstGregorianDay) {
+            let f = J + j;
+        } 
+        else {
+            let f = J + j + (((4 * J + B) / 146097) * 3) / 4 + C;
+        }
+        let e = r * f + v;
+        let g = (e % p) / r;
+        let h = u * g + w;
+        let D = ((h % s)) / u + 1;
+        let M = ((h / s + m) % n) + 1;
+        let Y = (e / p) - y + (n + m - M) / n;
+        return {year:Y,month:M,day:D};
+    }
     
+    get(field, value) {
+        if(field == Calendar.DAY_OF_WEEK) {
+            return (this.julianDay % 7)+1;
+        }
+        else if(field == Calendar.YEAR) {
+            return this.calc().year;
+        }
+        else if(field == Calendar.MONTH) {
+            return this.calc().month;
+        }
+        else if(field == Calendar.DAY_OF_MONTH) {
+            return this.calc().day;
+        }
+        else {
+            console.log("unerwartet: GregorianCalendar.get("+field+","+value+")");
+        }
+    }
+
+    add(field, value ) {
+        if(field == Calendar.DAY_OF_YEAR || field == Calendar.DAY_OF_MONTH) {
+            this.julianDay+=value;
+        } 
+        else {
+            while(value-- > 0 ) {
+                addInternal(field,1);
+            }
+            while(value++ < 0) {
+                addInternal(field, -1);
+            }
+        }
+    }
+
+    addInternal(field, value) {
+        //TODO: Check, ob die Berechnung korrekt funktioniert
+        let date=this.calc();
+        if(field == Calendar.YEAR) {
+            this.set(date.year+value,date.month,date.day);
+        } 
+        else if(field == Calendar.MONTH) {
+            this.set(date.year,date.month+value,date.day);
+        }
+    }
 };
 
 Day = class {
@@ -230,8 +336,7 @@ MonthDay = class extends ChurchDay {
 		// Wenn von hinten gezählt wird
 		if(this.myOffset<0) calendar.add(Calendar.MONTH, 1);
 
-		let dow=calendar.get(Calendar.DAY_OF_WEEK)-1;// Einen Tag abziehen
-		if(dow==0) dow=7;//Sonntag
+		let dow=calendar.get(Calendar.DAY_OF_WEEK);
 		
 		let days=(this.myOffset*7)+(this.myDayOfWeek-dow);
 		calendar.add(Calendar.DAY_OF_MONTH, days);

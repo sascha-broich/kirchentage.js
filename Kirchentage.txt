@@ -7,6 +7,7 @@
 7	so	o	Pfingsten
 8	so	o	Trinitatis
 -7	di	o	Fastnacht
+-7	mi	o	Aschermittwoch
 -7	so	o	Quinquagesima (Estomihi)
 -9	so	o	Septuagesima
 -8	so	o	Sexagesima
@@ -17,7 +18,7 @@
 -2	so	o	Judica
 -1	so	o	Palmarum
 -1	do	o	Gründonnerstag
-5	do	o	Himmelfahrt
+6	do	o	Himmelfahrt
 1.9.	Ägidius
 30.11.	Andreas
 24.8.	Bartholomäus

@@ -1,4 +1,6 @@
 const myDays = new Array();
+const WEEK_DAYS	= ["Tag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
+const PRE_POST	= ["vor", "genau", "nach"];
 
 function openTab(element) {
     let sections=document.getElementsByTagName("section");
@@ -25,7 +27,7 @@ function toggle(element) {
     return true;
 }
 
-Calendar = {
+const Calendar = {
     YEAR:1,
     MONTH:2,
     WEEK_OF_YEAR : 3,
@@ -49,6 +51,14 @@ Datum = class {
         this.month=Math.floor(month);
         this.day=Math.floor(day);
         this.julian=julian;
+    }
+
+    clone() {
+        return new Datum(this.year,this.month,this.day,this.julian);
+    }
+
+    toString() {
+        return "Datum{year: "+this.year+", month: "+this.month+", day: "+this.day+", julian: "+this.julian+"}";
     }
 }
 
@@ -180,9 +190,26 @@ GregorianCalendar = class {
         }
     }
 
-    toString() {
+    toString(formatted=false) {
         let datum=this.calc();
-        return datum.day+"."+datum.month+"."+datum.year+"("+(this.julian?"J":"G")+")";
+        if(formatted) {
+            return (datum.day<10?"0":"")+datum.day
+            +"."
+            +(datum.month<10?"0":"")+datum.month
+            +"."
+            +datum.year;
+        }
+        else
+            return datum.day+"."+datum.month+"."+datum.year+"("+(this.julian?"J":"G")+")";
+    }
+
+    clone() {
+        let calendar=new GregorianCalendar(0,0,0,0);
+        calendar.firstGregorianDay=this.firstGregorianDay;
+        calendar.julianDay=this.julianDay;
+        calendar.switchDate=this.switchDate.clone();
+        calendar.julian=this.julian;
+        return calendar;
     }
 };
 
@@ -211,7 +238,7 @@ Day = class {
         else if(dayOfMonth) {
             this.myReference=null;
             this.myDayOfMonth=dayOfMonth;
-            this.myMonth=month-1; // Umrechnung für Calendar
+            this.myMonth=month; // Umrechnung für Calendar
             this.myAbsolute=true;
         }
 	}
@@ -245,17 +272,15 @@ Day = class {
 	
 	getDate = function(year, julian) {
 		if(this.myReference==null) {
-			let calendar=getCalendar(julian);
-			calendar.set(year,this.myMonth,this.myDayOfMonth);
-			return calendar;
+			return new GregorianCalendar(year,this.myMonth,this.myDayOfMonth,julian);
 		}
 		else {
-			return this.getDate(this.myReference.getDate(year,julian));
+			return this.getCalendarDate(this.myReference.getDate(year,julian));
 		}		
 	}
 
-	getDate = function(cal) {
-		cal.add(Calendar.DAY_OF_YEAR,getOffset(cal));		
+	getCalendarDate = function(cal) {
+		cal.add(Calendar.DAY_OF_YEAR,this.getOffset(cal));		
 		return cal;
 	}
 	
@@ -266,19 +291,13 @@ Day = class {
 		else if(this.myAbsolute) {
 			let cal=calendar.clone();
 			cal.set(calendar.get(Calendar.YEAR),this.myMonth,this.myDayOfMonth);
-			let dow=cal.get(Calendar.DAY_OF_WEEK)-1;// Einen Tag abziehen
-			if(dow==0) dow=7;//Sonntag
+			let dow=cal.get(Calendar.DAY_OF_WEEK);//Sonntag
 			return dow;
 		} else { // Sollte nicht vorkommen
 			return 0;
 		}
 	}
-	
-	getCalendar = function(julian) {
-		let calendar=new GregorianCalendar();
-		if(julian) calendar.setGregorianChange(new Date(Long.MAX_VALUE));
-		return calendar;
-	}
+
 }
 
 ChurchDay = class extends Day {
@@ -304,8 +323,7 @@ Advent = class extends ChurchDay {
 	}
 
 	getDate = function(year, julian) {
-		let calendar=getCalendar(julian);
-		calendar.set(year,11,25);		// 1. Weihnachtstag
+		let calendar=new GregorianCalendar(year,12,25,julian); // 1. Weihnachtstag
         calendar.add(Calendar.DAY_OF_YEAR,-4*7); // 4 Wochen zurück
         while (calendar.get(Calendar.DAY_OF_WEEK)!= Calendar.SUNDAY)
             calendar.add(Calendar.DAY_OF_YEAR, -1); // zurückgehen, bis Sonntag ist
@@ -319,27 +337,32 @@ Easter = class extends ChurchDay {
 	}
 
 	getDate = function (year, julian) {
-		let g=year%19;
-		let i,j;
-		
-		if(julian) {
-			i=(19*g+15)%30;
-			j=(year+(year/4)+i)%7;
-		}
-		else {
-			let c=year/100;
-			let h=(c-(c/4)-(((8*c)+13)/25)+(19*g)+15)%30;
-			i=h-((h/28)*(1-(29/(h+1)))*((21-g)/11));
-			j=(year+(year/4)+i+2-c+(c/4))%7;
-		}
-		
-		let m=i-j;
-		let month=3+((m+40)/44);
-		let day=m+28-(31*(month/4));
+        //https://de.wikipedia.org/wiki/Gau%C3%9Fsche_Osterformel#Eine_erg%C3%A4nzte_Osterformel
+        let X=year;
+        // 1.	die Säkularzahl	
+        let K = Math.floor(X / 100);
+        // 2.	die säkulare Mondschaltung	
+        let M = (julian) ? 15 : 15 + Math.floor((3*K + 3) / 4) - Math.floor((8*K + 13) / 25);
+        //3.	die säkulare Sonnenschaltung	
+        let S = (julian) ? 0 : 2 - Math.floor((3*K + 3) / 4);
+        //4.	den Mondparameter	
+        let A = X % 19;
+        //5.	den Keim für den ersten Vollmond im Frühling	
+        let D = (19*A + M) % 30;
+        //6.	die kalendarische Korrekturgröße	
+        let R = Math.floor((D + Math.floor(A / 11)) / 29);
+        //7.	die Ostergrenze	
+        let OG = 21 + D - R;
+        //8.	den ersten Sonntag im März	
+        let SZ = 7 - (X + Math.floor(X / 4) + S) % 7;
+        //9.	die Entfernung des Ostersonntags von der Ostergrenze (Osterentfernung in Tagen)	
+        let OE = 7 - (OG - SZ) % 7;
+        //10.	das Datum des Ostersonntags als Märzdatum (32. März = 1. April usw.)	
+        let OS = OG + OE;
 
-		let cal=this.getCalendar(julian);
-		cal.set(year,month-1,day);
-		return cal;
+        let month = (OS<32)?3:4;
+        let day  = (OS<32)?OS:OS-31;
+		return new GregorianCalendar(year,month,day,julian);
 	}
 }
 
@@ -368,11 +391,8 @@ MonthDay = class extends ChurchDay {
 	}
 }
 
-
 loadChurchDays = function()
 {
-	const WEEK_DAYS	= ["Tag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
-	const PRE_POST	= ["vor", "genau", "nach"];
 
     const easter = new Easter();
     const advent = new Advent();
@@ -465,14 +485,56 @@ loadChurchDays = function()
                     let option=document.createElement("option");
                     option.textContent=day.getName();
                     option.value=day;
+                    option.ktt=day;
                     kirchentagTag.appendChild(option);
                 });
+                kirchentagTag.value=kirchentagTag.firstChild.value;
             });
+            addTriggers();
+            calculateKirchentag();
         };
     }
     catch(ex) {
         console.log(ex);
     }
+}
+
+function addTriggers() {
+    document.getElementById("kirchentag-number").onchange=calculateKirchentag;
+    document.getElementById("kirchentag-dow").onchange=calculateKirchentag;
+    document.getElementById("kirchentag-rel").onchange=calculateKirchentag;
+    document.getElementById("kirchentag-tag").onchange=calculateKirchentag;
+    document.getElementById("kirchentag-jahr").onchange=calculateKirchentag;
+}
+
+function calculateKirchentag() {
+    let num=parseInt(document.getElementById("kirchentag-number").value);
+    let dow=document.getElementById("kirchentag-dow").selectedIndex;
+    let rel=parseInt(document.getElementById("kirchentag-rel").value);
+    let jahr=parseInt(document.getElementById("kirchentag-jahr").value);
+    let ktt=document.getElementById("kirchentag-tag");
+    let tag=ktt.options[ktt.selectedIndex].ktt;
+
+    console.log("calculateKirchentag{");
+    console.log("num: "+num+", dow: "+dow+", rel: "+rel+", tag: "+tag+", jahr: "+jahr);
+
+    let day;
+    
+    if(rel == 0) day= tag;
+    else if(dow==0) day=new Day(null,null, tag,num*rel,null,null);
+    else day=new Day(dow, num * rel, tag,null, null);
+
+    let gregDate=day.getGregorianDate(jahr);
+    let julDate=day.getJulianDate(jahr);
+    
+    console.log("gregorian: "+gregDate.toString());
+    console.log("julian: "+julDate.toString());
+    console.log("}");
+
+    document.getElementById("kirchentag-datum-jul").innerHTML=julDate.toString(true);
+    document.getElementById("kirchentag-dow-jul").innerHTML=WEEK_DAYS[julDate.get(Calendar.DAY_OF_WEEK)];
+    document.getElementById("kirchentag-datum-gre").innerHTML=gregDate.toString(true);
+    document.getElementById("kirchentag-dow-gre").innerHTML=WEEK_DAYS[gregDate.get(Calendar.DAY_OF_WEEK)];
 }
 
 function setDaysOfMonth() {
@@ -495,5 +557,5 @@ function setDaysOfMonth() {
 
 window.onload=function () {
     setDaysOfMonth();
-    loadChurchDays();
+    loadChurchDays();    
 }

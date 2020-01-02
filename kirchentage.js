@@ -25,44 +25,38 @@ function toggle(element) {
     return true;
 }
 
-function setDaysOfMonth() {
-    let year=parseInt(document.getElementById("wochentage-jahr").value,10);
-    let month=document.getElementById("wochentage-monat").selectedIndex;
-    let julian=document.getElementById("wochentage-toggle").value;
-    let buttons=document.getElementById("wochentage-kalender").getElementsByTagName("button");
+Calendar = {
+    YEAR:1,
+    MONTH:2,
+    WEEK_OF_YEAR : 3,
+    WEEK_OF_MONTH : 4,
+    DATE : 5,
+    DAY_OF_MONTH : 5,
+    DAY_OF_YEAR : 6,
+    DAY_OF_WEEK : 7,
 
-    let date=new Date(year,month,1);
-    let dow=date.getDay();
-    dow=(6+dow)%7;
-    date.setFullYear(year,month+1,0);
-    let last=date.getDate()+dow;
-
-    for(let i=0;i<buttons.length;i++) 
-        buttons[i].innerHTML=(i>=dow && i<last)?(""+(i+1-dow)):"";
+    SUNDAY : 7
 }
 
-window.onload=function () {
-    setDaysOfMonth();
-    loadChurchDays();
+Datum = class {
+    year;
+    month;
+    day;
+    julian;
+
+    constructor(year,month,day,julian) {
+        this.year=Math.floor(year);
+        this.month=Math.floor(month);
+        this.day=Math.floor(day);
+        this.julian=julian;
+    }
 }
 
-Calendar = class {
-    YEAR = 1;
-    MONTH = 2;
-    WEEK_OF_YEAR = 3;
-    WEEK_OF_MONTH = 4;
-    DATE = 5;
-    DAY_OF_MONTH = 5;
-    DAY_OF_YEAR = 6;
-    DAY_OF_WEEK = 7;
-
-    SUNDAY = 7;
-}
-
-GregorianCalendar = class extends Calendar {
+GregorianCalendar = class {
     julianDay;
     julian=false;
     firstGregorianDay=2299159.5;
+    switchDate=this.calc(this.firstGregorianDay);
 
     constructor(year, month, day, julian=false) {
         this.setJulian(julian);
@@ -70,58 +64,82 @@ GregorianCalendar = class extends Calendar {
     }
 
     setJulian(julian) {
-        this.julian=julian;
+        this.julian= (julian==1 || julian=="1")?true:false;
+    }
+
+    set(datum) {
+        this.setJulian(datum.julian);
+        this.set(datum.year,datum.month,datum.day);
     }
 
     set(year,month,day) {
-        let switchDate=this.calc(this.firstGregorianDay);
-        if(this.julian || (year < switchDate.year) || (month < switchDate.month) || day < switchDate.day) {
-            // https://en.wikipedia.org/wiki/Julian_day#Converting_Julian_calendar_date_to_Julian_Day_Number
-            this.julianDay = 367 * year - (7 * (year + 5001 + (month - 9)/7))/4 + (275 * month)/9 + day + 1729777;
+        // https://de.wikipedia.org/wiki/Julianisches_Datum#Umrechnung_Kalenderdatum_%E2%86%92_JD
+        let Y,M,D,B;
+        if(month > 2) {
+            Y = year;    
+            M = month;
         } 
         else {
-            // https://en.wikipedia.org/wiki/Julian_day#Converting_Gregorian_calendar_date_to_Julian_Day_Number
-            // JDN = (1461 * (Y + 4800 + (M - 14)/12))/4 +(367 * (M - 2 - 12 * ((M - 14)/12)))/12 - (3 * ((Y + 4900 + (M - 14)/12)/100))/4 + D - 32075
-            this.julianDay = (1461 * (year + 4800 + (month - 14)/12))/4 +(367 * (month - 2 - 12 * ((month - 14)/12)))/12 - (3 * ((year + 4900 + (month - 14)/12)/100))/4 + day - 32075;
+            Y = year-1;  
+            M = month+12
         }
+        D = day;   // inklusive Tagesbruchteil
+        
+        if(this.julian || this.isBeforeSwitchDate(year,month,day)) {
+            B = 0;
+        } 
+        else {
+            B = 2 - Math.floor(Y/100) + Math.floor(Y/400);
+        }
+     
+        this.julianDay =  Math.floor(365.25*(Y+4716)) + Math.floor(30.6001*(M+1)) + D + B - 1524.5;
+    }
+
+    isBeforeSwitchDate(year,month,day) {
+        if(year > this.switchDate.year) return false;
+        if(month > this.switchDate.month) return false;
+        if(day > this.switchDate.day) return false;
+        return true;
     }
 
     setFirstGregorianDay(year,month,day) {
-        this.firstGregorianDay = (1461 * (year + 4800 + (month - 14)/12))/4 +(367 * (month - 2 - 12 * ((month - 14)/12)))/12 - (3 * ((year + 4900 + (month - 14)/12)/100))/4 + day - 32075;
+        this.firstGregorianDay = Math.floor((1461 * (year + 4800 + (month - 14)/12))/4 +(367 * (month - 2 - 12 * ((month - 14)/12)))/12 - (3 * ((year + 4900 + (month - 14)/12)/100))/4 + day - 32075);
+        this.switchDate=calc(this.firstGregorianDay);
     }
 
-    calc(J=this.julianDay) {
-        let y=4716;
-        let v=3;
-        let j=1401;
-        let u=5;
-        let m=2;
-        let s=153;
-        let n=12;
-        let w=2;
-        let r=4;
-        let B=274277;
-        let p=1461;
-        let C=-38;
+    calc(JD=this.julianDay) {
+        let isJulian=this.julian || JD < this.firstGregorianDay;
 
-        if(this.julian || J < this.firstGregorianDay) {
-            let f = J + j;
-        } 
-        else {
-            let f = J + j + (((4 * J + B) / 146097) * 3) / 4 + C;
+        // https://de.wikipedia.org/wiki/Julianisches_Datum#Umrechnung_JD_%E2%86%92_Kalenderdatum
+        let Z = Math.floor(JD + 0.5);
+        let F = JD + 0.5 - Z;
+        let A = Z; 
+        if(!isJulian){
+            let a = Math.floor((Z - 1867216.25)/36524.25);
+            A = Z + 1 + a - Math.floor(a/4);
         }
-        let e = r * f + v;
-        let g = (e % p) / r;
-        let h = u * g + w;
-        let D = ((h % s)) / u + 1;
-        let M = ((h / s + m) % n) + 1;
-        let Y = (e / p) - y + (n + m - M) / n;
-        return {year:Y,month:M,day:D};
+         
+        let B = A + 1524;
+        let C = Math.floor((B - 122.1)/365.25);
+        let D = Math.floor(365.25*C);
+        let E = Math.floor((B - D)/30.6001);
+         
+        let Tag = B - D - Math.floor(30.6001*E) + F;   // inklusive Tagesbruchteil
+        let Monat,Jahr;
+        if(E <= 13){
+            Monat = E - 1;
+            Jahr = C - 4716;
+        }
+        else {
+            Monat = E - 13;
+            Jahr = C - 4715;
+        }
+        return new Datum(Jahr,Monat,Tag,this.julian);
     }
     
     get(field, value) {
         if(field == Calendar.DAY_OF_WEEK) {
-            return (this.julianDay % 7)+1;
+            return (Math.floor(this.julianDay+.5) % 7)+1;
         }
         else if(field == Calendar.YEAR) {
             return this.calc().year;
@@ -160,6 +178,11 @@ GregorianCalendar = class extends Calendar {
         else if(field == Calendar.MONTH) {
             this.set(date.year,date.month+value,date.day);
         }
+    }
+
+    toString() {
+        let datum=this.calc();
+        return datum.day+"."+datum.month+"."+datum.year+"("+(this.julian?"J":"G")+")";
     }
 };
 
@@ -450,4 +473,27 @@ loadChurchDays = function()
     catch(ex) {
         console.log(ex);
     }
+}
+
+function setDaysOfMonth() {
+    let year=parseInt(document.getElementById("wochentage-jahr").value,10);
+    let month=1+document.getElementById("wochentage-monat").selectedIndex;
+    let julian=document.getElementById("wochentage-toggle").value;
+    let buttons=document.getElementById("wochentage-kalender").getElementsByTagName("button");
+
+    let cal=new GregorianCalendar(year,month,1,julian);
+    let dow=cal.get(Calendar.DAY_OF_WEEK);
+    let last=dow;
+    do {
+        last+=1;
+        cal.add(Calendar.DAY_OF_MONTH,1);
+    }while(cal.get(Calendar.MONTH)==month);
+
+    for(let i=1;i<=buttons.length;i++) 
+        buttons[i-1].innerHTML=(i>=dow && i<last)?(""+(i+1-dow)):"";
+}
+
+window.onload=function () {
+    setDaysOfMonth();
+    loadChurchDays();
 }

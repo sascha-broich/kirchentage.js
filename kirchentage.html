@@ -6,6 +6,7 @@
 		<title>Kirchentage - Kalender-Berechnungen</title>
 		<link rel="stylesheet" href="kirchentage.css"/>
 		<script type="text/javascript" src="kirchentage.js" ></script>
+		<!-- favicon from https://www.freefavicon.com/freefavicons/icons/iconinfo/calendar-icon-152-213247.html -->
 	</head>
 	<body>
 		<header>Berechnung von Kalenderdaten anhand von Kirchentagen, Wochentage, Altersbestimmung</header>
@@ -47,7 +48,7 @@
 			<div class="row">
 				<label for="alter-start">*</label>
 				<input type="date" id="alter-geburt" title="Geburtsdatum" placeholder=""/>
-				<button title="Geburtsdatum ermitteln">?</button>
+				<button title="Geburtsdatum ermitteln" onclick="calculateBirthDate()">?</button>
 			</div>
 			<div class="row">				
 				<input type="number" id="alter-jahre" title="Anzahl Jahre"/>
@@ -58,11 +59,12 @@
 				<label for="alter-wochen">Wochen</label>
 				<input type="number" id="alter-tage" title="Anzahl Tage"/>
 				<label for="alter-tage">Tage</label>
+				<button title="Alter ermitteln" onclick="calculateAge()">?</button>
 			</div>
 			<div class="row">
 				<label for="alter-tod">+</label>
 				<input type="date" id="alter-tod" title="Sterbedatum" />
-				<button title="Sterbedatum ermitteln">?</button>
+				<button title="Sterbedatum ermitteln" onclick="calculateDeathDate()">?</button>
 			</div>
 			<div class="row">
 				<button id="alter-toggle" class="toggle" value="0" onclick="toggle(this)" title="Zwischen Gregorianischem und Julianischem Kalender umschalten">Gregorianisch</button>

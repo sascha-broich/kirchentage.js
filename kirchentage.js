@@ -37,7 +37,11 @@ const Calendar = {
 	DAY_OF_YEAR : 6,
 	DAY_OF_WEEK : 7,
 
-	SUNDAY : 7
+	SUNDAY : 7,
+
+	FORMAT_INTERNAL:0,
+	FORMAT_DOT : 1,
+	FORMAT_DASH: 2
 }
 
 Datum = class {
@@ -170,11 +174,15 @@ GregorianCalendar = class {
 			this.julianDay+=value;
 		} 
 		else {
-			while(value-- > 0 ) {
-				addInternal(field,1);
+			if(value > 0) {
+				while(value-- > 0 ) {
+					this.addInternal(field,1);
+				}
 			}
-			while(value++ < 0) {
-				addInternal(field, -1);
+			else if(value < 0) {
+				while(value++ < 0) {
+					this.addInternal(field, -1);
+				}
 			}
 		}
 	}
@@ -190,17 +198,25 @@ GregorianCalendar = class {
 		}
 	}
 
-	toString(formatted=false) {
+	toString(format=Calendar.FORMAT_INTERNAL) {
 		let datum=this.calc();
-		if(formatted) {
+		if(format==Calendar.FORMAT_DOT) {
 			return (datum.day<10?"0":"")+datum.day
 			+"."
 			+(datum.month<10?"0":"")+datum.month
 			+"."
 			+datum.year;
 		}
-		else
+		else if(format==Calendar.FORMAT_DASH) {
+			return datum.year
+			+"-"
+			+(datum.month<10?"0":"")+datum.month
+			+"-"
+			+(datum.day<10?"0":"")+datum.day;
+		}
+		else { //format==Calendar.FORMAT_INTERNAL
 			return datum.day+"."+datum.month+"."+datum.year+"("+(this.julian?"J":"G")+")";
+		} 
 	}
 
 	clone() {
@@ -210,6 +226,9 @@ GregorianCalendar = class {
 		calendar.switchDate=this.switchDate.clone();
 		calendar.julian=this.julian;
 		return calendar;
+	}
+	isBefore(other) {
+		return this.julianDay<other.julianDay;
 	}
 };
 
@@ -534,9 +553,9 @@ function calculateKirchentag() {
 	console.log("julian: "+julDate.toString());
 	console.log("}");
 
-	document.getElementById("kirchentag-datum-jul").innerHTML=julDate.toString(true);
+	document.getElementById("kirchentag-datum-jul").innerHTML=julDate.toString(Calendar.FORMAT_DOT);
 	document.getElementById("kirchentag-dow-jul").innerHTML=WEEK_DAYS[julDate.get(Calendar.DAY_OF_WEEK)];
-	document.getElementById("kirchentag-datum-gre").innerHTML=gregDate.toString(true);
+	document.getElementById("kirchentag-datum-gre").innerHTML=gregDate.toString(Calendar.FORMAT_DOT);
 	document.getElementById("kirchentag-dow-gre").innerHTML=WEEK_DAYS[gregDate.get(Calendar.DAY_OF_WEEK)];
 }
 
@@ -556,6 +575,85 @@ function setDaysOfMonth() {
 
 	for(let i=1;i<=buttons.length;i++) 
 		buttons[i-1].innerHTML=(i>=dow && i<last)?(""+(i+1-dow)):"";
+}
+
+function calculateBirthDate() {
+	let julian=document.getElementById("alter-toggle").value;
+	let deathdate=getDatum(document.getElementById("alter-tod").value,julian);
+	let years=parseInt(document.getElementById("alter-jahre").value);
+	let months=parseInt(document.getElementById("alter-monate").value);
+	let weeks=parseInt(document.getElementById("alter-wochen").value);
+	let days=parseInt(document.getElementById("alter-tage").value);
+
+	console.log("age: "+years+" a "+months+" m "+weeks+" w "+days+" d");
+	
+	if(deathdate) {
+		let cal=deathdate.clone();
+		cal.add(Calendar.YEAR,-years);
+		cal.add(Calendar.MONTH,-months);
+		cal.add(Calendar.DAY_OF_MONTH,-(days+(weeks*7)));
+		console.log("birthdate: "+cal);
+		document.getElementById("alter-geburt").value=cal.toString(Calendar.FORMAT_DASH);
+	}
+}
+
+function calculateDeathDate() {
+	let julian=document.getElementById("alter-toggle").value;
+	let birthdate=getDatum(document.getElementById("alter-geburt").value,julian);
+	let years=parseInt(document.getElementById("alter-jahre").value);
+	let months=parseInt(document.getElementById("alter-monate").value);
+	let weeks=parseInt(document.getElementById("alter-wochen").value);
+	let days=parseInt(document.getElementById("alter-tage").value);
+
+	console.log("age: "+years+" a "+months+" m "+weeks+" w "+days+" d");
+	
+	if(birthdate) {
+		let cal=birthdate.clone();
+		cal.add(Calendar.YEAR,years);
+		cal.add(Calendar.MONTH,months);
+		cal.add(Calendar.DAY_OF_MONTH,days+(weeks*7));
+		console.log("deathdate: "+cal);
+		document.getElementById("alter-tod").value=cal.toString(Calendar.FORMAT_DASH);
+	}
+
+}
+
+function calculateAge() {
+	let julian=document.getElementById("alter-toggle").value;
+	let birthdate=getDatum(document.getElementById("alter-geburt").value,julian);
+	let deathdate=getDatum(document.getElementById("alter-tod").value,julian);
+
+	if(birthdate && deathdate) {
+		let cal=birthdate.clone();
+		let years=getDiff(cal,deathdate,Calendar.YEAR);
+		let months=getDiff(cal,deathdate,Calendar.MONTH);
+		let days=getDiff(cal,deathdate,Calendar.DAY_OF_MONTH)+1;
+		let weeks=Math.floor(days / 7);
+		days -= weeks * 7;
+
+		console.log("age: "+years+" a "+months+" m "+weeks+" w "+days+" d");
+
+		document.getElementById("alter-jahre").value=years;
+		document.getElementById("alter-monate").value=months;
+		document.getElementById("alter-wochen").value=weeks;
+		document.getElementById("alter-tage").value=days;
+	}
+}
+
+function getDiff(start, end, field) {
+	let value=-1;
+	while(start.isBefore(end)) {
+		start.add(field,1);
+		value++;
+	}
+	start.add(field,-1);
+	return value;
+}
+
+function getDatum(dateString, julian) {
+	let parts=dateString.split("-");
+	if(parts.length!=3) return null;
+	return new GregorianCalendar(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]),julian);
 }
 
 window.onload=function () {

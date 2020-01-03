@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Kirchentage - Kalender-Berechnungen</title>		
+		<script type="text/javascript">
+			const KIRCHENTAGE = [ 
+				// Format :
+				// beweglich: n-ter <tab> Wochentag <tab> anderer Kirchentag (Namensanfang, klein) <tab>  Name
+				// fest: tag.monat <tab> Name
+				"1	so	o	Quasimodogeniti",
+				"2	so	o	Misericordias Domini",
+				"3	so	o	Jubilate ",
+				"4	so	o	Cantate",
+				"5	so	o	Rogate(Jucunditatis)",
+				"6	so	o	Exaudi",
+				"7	so	o	Pfingsten",
+				"8	so	o	Trinitatis",
+				"-7	di	o	Fastnacht",
+				"-7	mi	o	Aschermittwoch",
+				"-7	so	o	Quinquagesima (Estomihi)",
+				"-9	so	o	Septuagesima",
+				"-8	so	o	Sexagesima",
+				"-6	so	o	Invocavit",
+				"-5	so	o	Reminiscere",
+				"-4	so	o	Oculi",
+				"-3	so	o	Laetare",
+				"-2	so	o	Judica",
+				"-1	so	o	Palmarum",
+				"-1	do	o	Gründonnerstag",
+				"6	do	o	Himmelfahrt",
+				"1.9.	Ägidius",
+				"30.11.	Andreas",
+				"24.8.	Bartholomäus",
+				"21.3.	Benedict",
+				"5.6.	Bonifatius",
+				"21.10.	Burkhardt",
+				"5.11.	Elisabeth",
+				"20.1.	Fabian Sebastian",
+				"4.10.	Franziscus",
+				"16.10.	Gallus",
+				"12.3.	Gregor",
+				"17.3.	Gertraudt",
+				"1.5.	Jacobi",
+				"25.7.	Jacob d. Ä.",
+				"27.12.	Johannis Evangelist",
+				"24.6.	Johannistag",
+				"29.8.	Johannes Enthauptung",
+				"25.11.	Katharina",
+				"8.7.	Kilian",
+				"14.9.	Kreuzerhöhung",
+				"10.8.	Laurentius",
+				"13.12.	Lucia Odilia",
+				"20.7.	Margareta",
+				"8.9.	Mariae Geburt",
+				"2.7.	Mariae Heimsuchung",
+				"15.8.	Mariae Himmelfahrt",
+				"2.2.	Mariae Lichtmeß",
+				"25.3.	Mariae Verkündigung",
+				"22.7.	Maria Magdalena	",
+				"11.11.	Martin",
+				"21.9.	Matthäus",
+				"8.6.	Medardus",
+				"29.9.	Michaelis",
+				"25.1.	Pauli Bekehrung",
+				"29.6.	Peter Paul",
+				"1.8.	Petri Kettenfeier",
+				"22.2.	Petri Stuhlfeier",
+				"1.5.	Phillip und Jacobus",
+				"28.10.	Simon und Judas",
+				"26.12.	Stephan",
+				"21.12.	Thomas",
+				"4.6.	Ulrich",
+				"21.10.	Ursula",
+				"14.2.	Valentin",
+				"15.6.	Vitus",
+				"1.11.	Allerheiligen",
+				"24.6.	Johannes der Täufer",
+				"25.12.	Weihnachten",
+				"6.1.	Drei Könige",	
+			];
+			const myDays = new Array();
+			const WEEK_DAYS	= ["Tag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
+			const PRE_POST	= ["vor", "genau", "nach"];
+
+			function openTab(element) {
+				let sections=document.getElementsByTagName("section");
+				for(let i=0;i<sections.length;i++) {
+					sections[i].classList.remove("active");
+				}
+				let tabs=document.getElementById("tabs").children;
+				for(let i=0;i<tabs.length;i++) {
+					tabs[i].classList.remove("active");
+				}
+				document.getElementById(element.id.substring(4)).classList.add("active");
+				element.classList.add("active");
+			}
+
+			function toggle(element) {
+				if(element.value==0) {
+					element.value=1;
+					element.firstChild.nodeValue="Julianisch";
+				}
+				else {
+					element.value=0;
+					element.firstChild.nodeValue="Gregorianisch";
+				}
+				return true;
+			}
+
+			const Calendar = {
+				YEAR:1,
+				MONTH:2,
+				WEEK_OF_YEAR : 3,
+				WEEK_OF_MONTH : 4,
+				DATE : 5,
+				DAY_OF_MONTH : 5,
+				DAY_OF_YEAR : 6,
+				DAY_OF_WEEK : 7,
+
+				SUNDAY : 7,
+
+				FORMAT_INTERNAL:0,
+				FORMAT_DOT : 1,
+				FORMAT_DASH: 2
+			}
+
+			Datum = class {
+				year;
+				month;
+				day;
+				julian;
+
+				constructor(year,month,day,julian) {
+					this.year=Math.floor(year);
+					this.month=Math.floor(month);
+					this.day=Math.floor(day);
+					this.julian=julian;
+				}
+
+				clone() {
+					return new Datum(this.year,this.month,this.day,this.julian);
+				}
+
+				toString() {
+					return "Datum{year: "+this.year+", month: "+this.month+", day: "+this.day+", julian: "+this.julian+"}";
+				}
+			}
+
+			GregorianCalendar = class {
+				julianDay;
+				julian=false;
+				firstGregorianDay=2299159.5;
+				switchDate=this.calc(this.firstGregorianDay);
+
+				constructor(year, month, day, julian=false) {
+					this.setJulian(julian);
+					this.set(year,month,day);
+				}
+
+				setJulian(julian) {
+					this.julian= (julian==1 || julian=="1")?true:false;
+				}
+
+				set(datum) {
+					this.setJulian(datum.julian);
+					this.set(datum.year,datum.month,datum.day);
+				}
+
+				set(year,month,day) {
+					// https://de.wikipedia.org/wiki/Julianisches_Datum#Umrechnung_Kalenderdatum_%E2%86%92_JD
+					let Y,M,D,B;
+					if(month > 2) {
+						Y = year;	
+						M = month;
+					} 
+					else {
+						Y = year-1;  
+						M = month+12
+					}
+					D = day;   // inklusive Tagesbruchteil
+					
+					if(this.julian || this.isBeforeSwitchDate(year,month,day)) {
+						B = 0;
+					} 
+					else {
+						B = 2 - Math.floor(Y/100) + Math.floor(Y/400);
+					}
+				
+					this.julianDay =  Math.floor(365.25*(Y+4716)) + Math.floor(30.6001*(M+1)) + D + B - 1524.5;
+				}
+
+				isBeforeSwitchDate(year,month,day) {
+					if(year > this.switchDate.year) return false;
+					if(month > this.switchDate.month) return false;
+					if(day > this.switchDate.day) return false;
+					return true;
+				}
+
+				setFirstGregorianDay(year,month,day) {
+					this.firstGregorianDay = Math.floor((1461 * (year + 4800 + (month - 14)/12))/4 +(367 * (month - 2 - 12 * ((month - 14)/12)))/12 - (3 * ((year + 4900 + (month - 14)/12)/100))/4 + day - 32075);
+					this.switchDate=calc(this.firstGregorianDay);
+				}
+
+				calc(JD=this.julianDay) {
+					let isJulian=this.julian || JD < this.firstGregorianDay;
+
+					// https://de.wikipedia.org/wiki/Julianisches_Datum#Umrechnung_JD_%E2%86%92_Kalenderdatum
+					let Z = Math.floor(JD + 0.5);
+					let F = JD + 0.5 - Z;
+					let A = Z; 
+					if(!isJulian){
+						let a = Math.floor((Z - 1867216.25)/36524.25);
+						A = Z + 1 + a - Math.floor(a/4);
+					}
+					
+					let B = A + 1524;
+					let C = Math.floor((B - 122.1)/365.25);
+					let D = Math.floor(365.25*C);
+					let E = Math.floor((B - D)/30.6001);
+					
+					let Tag = B - D - Math.floor(30.6001*E) + F;   // inklusive Tagesbruchteil
+					let Monat,Jahr;
+					if(E <= 13){
+						Monat = E - 1;
+						Jahr = C - 4716;
+					}
+					else {
+						Monat = E - 13;
+						Jahr = C - 4715;
+					}
+					return new Datum(Jahr,Monat,Tag,this.julian);
+				}
+				
+				get(field, value) {
+					if(field == Calendar.DAY_OF_WEEK) {
+						return (Math.floor(this.julianDay+.5) % 7)+1;
+					}
+					else if(field == Calendar.YEAR) {
+						return this.calc().year;
+					}
+					else if(field == Calendar.MONTH) {
+						return this.calc().month;
+					}
+					else if(field == Calendar.DAY_OF_MONTH) {
+						return this.calc().day;
+					}
+					else {
+						console.log("unerwartet: GregorianCalendar.get("+field+","+value+")");
+					}
+				}
+
+				add(field, value ) {
+					if(field == Calendar.DAY_OF_YEAR || field == Calendar.DAY_OF_MONTH) {
+						this.julianDay+=value;
+					} 
+					else {
+						if(value > 0) {
+							while(value-- > 0 ) {
+								this.addInternal(field,1);
+							}
+						}
+						else if(value < 0) {
+							while(value++ < 0) {
+								this.addInternal(field, -1);
+							}
+						}
+					}
+				}
+
+				addInternal(field, value) {
+					//TODO: Check, ob die Berechnung korrekt funktioniert
+					let date=this.calc();
+					if(field == Calendar.YEAR) {
+						this.set(date.year+value,date.month,date.day);
+					} 
+					else if(field == Calendar.MONTH) {
+						this.set(date.year,date.month+value,date.day);
+					}
+				}
+
+				toString(format=Calendar.FORMAT_INTERNAL) {
+					let datum=this.calc();
+					if(format==Calendar.FORMAT_DOT) {
+						return (datum.day<10?"0":"")+datum.day
+						+"."
+						+(datum.month<10?"0":"")+datum.month
+						+"."
+						+datum.year;
+					}
+					else if(format==Calendar.FORMAT_DASH) {
+						return datum.year
+						+"-"
+						+(datum.month<10?"0":"")+datum.month
+						+"-"
+						+(datum.day<10?"0":"")+datum.day;
+					}
+					else { //format==Calendar.FORMAT_INTERNAL
+						return datum.day+"."+datum.month+"."+datum.year+"("+(this.julian?"J":"G")+")";
+					} 
+				}
+
+				clone() {
+					let calendar=new GregorianCalendar(0,0,0,0);
+					calendar.firstGregorianDay=this.firstGregorianDay;
+					calendar.julianDay=this.julianDay;
+					calendar.switchDate=this.switchDate.clone();
+					calendar.julian=this.julian;
+					return calendar;
+				}
+				isBefore(other) {
+					return this.julianDay<other.julianDay;
+				}
+			};
+
+			Day = class {
+				myReference; // Day
+				myWeekOffset; //int 
+				myDayOfWeek; //int 
+				myDayOfMonth; // int
+				myMonth; //int
+				myOffset; //int
+				
+				myAbsolute=false; //boolean
+				myRelative=false; //boolean
+				
+				constructor (dayOfWeek, week, reference, offset, dayOfMonth, month) {
+					if(dayOfWeek) {
+						this.myReference=reference;
+						this.myDayOfWeek=dayOfWeek;
+						this.myWeekOffset=week;
+						this.myRelative=true;
+					}
+					else if(offset) {
+						this.myReference=reference;
+						this.myOffset=offset;
+					}
+					else if(dayOfMonth) {
+						this.myReference=null;
+						this.myDayOfMonth=dayOfMonth;
+						this.myMonth=month; // Umrechnung für Calendar
+						this.myAbsolute=true;
+					}
+				}
+
+				getOffset = function (calendar) {
+					if(this.myAbsolute) { // Sollte nicht vorkommen
+						return 0;
+					}
+					else if(this.myRelative) { // Wochentag 
+						let refDayOfWeek=(this.myReference==null)?0:this.myReference.getDayOfWeek(calendar);
+						let dd=this.myDayOfWeek-refDayOfWeek;
+						let week=this.myWeekOffset;
+						
+						if(dd<0 && week <0) week++;
+						else if(dd>0 && week>0) week--;
+
+						return (7*week)+dd;
+					}
+					else { // Einfach mit Offset
+						return this.myOffset;
+					}	
+				}	
+
+				getJulianDate = function(year) {
+					return this.getDate(year,true);
+				}
+
+				getGregorianDate = function(year) {
+					return this.getDate(year,false);
+				}
+				
+				getDate = function(year, julian) {
+					if(this.myReference==null) {
+						return new GregorianCalendar(year,this.myMonth,this.myDayOfMonth,julian);
+					}
+					else {
+						return this.getCalendarDate(this.myReference.getDate(year,julian));
+					}		
+				}
+
+				getCalendarDate = function(cal) {
+					cal.add(Calendar.DAY_OF_YEAR,this.getOffset(cal));		
+					return cal;
+				}
+				
+				getDayOfWeek = function(calendar) {
+					if(this.myRelative) { // Wochentag schon vorhanden
+						return this.myDayOfWeek;
+					}
+					else if(this.myAbsolute) {
+						let cal=calendar.clone();
+						cal.set(calendar.get(Calendar.YEAR),this.myMonth,this.myDayOfMonth);
+						let dow=cal.get(Calendar.DAY_OF_WEEK);//Sonntag
+						return dow;
+					} else { // Sollte nicht vorkommen
+						return 0;
+					}
+				}
+
+			}
+
+			ChurchDay = class extends Day {
+				myName; // String
+				
+				constructor(name, dayOfWeek, week, reference, dayOfMonth, month) {
+					super(dayOfWeek,week,reference,null,dayOfMonth,month);
+					this.myName=name;
+				}
+
+				toString = function() {
+					return this.getName();
+				}
+				
+				getName  = function() {
+					return this.myName;
+				}
+			}
+
+			Advent = class extends ChurchDay {
+				constructor() {
+					super("1. Advent",7,0,null);
+				}
+
+				getDate = function(year, julian) {
+					let calendar=new GregorianCalendar(year,12,25,julian); // 1. Weihnachtstag
+					calendar.add(Calendar.DAY_OF_YEAR,-4*7); // 4 Wochen zurück
+					while (calendar.get(Calendar.DAY_OF_WEEK)!= Calendar.SUNDAY)
+						calendar.add(Calendar.DAY_OF_YEAR, -1); // zurückgehen, bis Sonntag ist
+					return calendar;
+				}
+			}
+
+			Easter = class extends ChurchDay {
+				constructor() {
+					super("Ostern", 7,0, null);
+				}
+
+				getDate = function (year, julian) {
+					//https://de.wikipedia.org/wiki/Gau%C3%9Fsche_Osterformel#Eine_erg%C3%A4nzte_Osterformel
+					let X=year;
+					// 1.	die Säkularzahl	
+					let K = Math.floor(X / 100);
+					// 2.	die säkulare Mondschaltung	
+					let M = (julian) ? 15 : 15 + Math.floor((3*K + 3) / 4) - Math.floor((8*K + 13) / 25);
+					//3.	die säkulare Sonnenschaltung	
+					let S = (julian) ? 0 : 2 - Math.floor((3*K + 3) / 4);
+					//4.	den Mondparameter	
+					let A = X % 19;
+					//5.	den Keim für den ersten Vollmond im Frühling	
+					let D = (19*A + M) % 30;
+					//6.	die kalendarische Korrekturgröße	
+					let R = Math.floor((D + Math.floor(A / 11)) / 29);
+					//7.	die Ostergrenze	
+					let OG = 21 + D - R;
+					//8.	den ersten Sonntag im März	
+					let SZ = 7 - (X + Math.floor(X / 4) + S) % 7;
+					//9.	die Entfernung des Ostersonntags von der Ostergrenze (Osterentfernung in Tagen)	
+					let OE = 7 - (OG - SZ) % 7;
+					//10.	das Datum des Ostersonntags als Märzdatum (32. März = 1. April usw.)	
+					let OS = OG + OE;
+
+					let month = (OS<32)?3:4;
+					let day  = (OS<32)?OS:OS-31;
+					return new GregorianCalendar(year,month,day,julian);
+				}
+			}
+
+			MonthDay = class extends ChurchDay {
+				constructor(offset,dayOfWeek,month, name) {
+					super(name, null, null, null, 0, month);
+					this.myDayOfWeek=dayOfWeek;
+					this.myOffset=offset>0?offset-1:offset;
+					this.myAbsolute=false;
+					this.myRelative=true;
+				}
+
+				getDate = function(year, julian) {		
+					let calendar=this.getCalendar(julian);
+					calendar.set(year,this.myMonth,1);
+
+					// Wenn von hinten gezählt wird
+					if(this.myOffset<0) calendar.add(Calendar.MONTH, 1);
+
+					let dow=calendar.get(Calendar.DAY_OF_WEEK);
+					
+					let days=(this.myOffset*7)+(this.myDayOfWeek-dow);
+					calendar.add(Calendar.DAY_OF_MONTH, days);
+
+					return calendar;
+				}
+			}
+
+			loadChurchDays = function()
+			{
+				const easter = new Easter();
+				const advent = new Advent();
+
+				myDays.push(easter);
+				myDays.push(advent);
+
+				try
+				{
+					for(let i=0;i<KIRCHENTAGE.length;i++) {
+						let line=KIRCHENTAGE[i];
+						if(line.trim().startsWith("#")) {
+							continue;
+						}
+						let split = line.split("\t");
+						for (let i = 0; i < split.length; i++) {
+							split[i] = split[i].trim();
+						}					
+						if (split.length >= 2 && split[0].indexOf(".") >0) {
+							// Datum lesen: dd.MM.
+							let date = split[0].split(".");
+							let dayOfMonth = parseInt(date[0]);
+							let month = parseInt(date[1]);
+							let name = "";
+							for(let i=1;i<split.length;i++) {
+								if(i>1) name+=" ";
+								name+=split[i];
+							}
+							myDays.push(new ChurchDay(name, null, null, null, dayOfMonth, month));
+						}
+						else
+						{
+							let name = "";
+							let week = 0;
+							let dow = 7;
+							let ref = easter;
+							let month=-1;
+
+							let len = -1;
+							// Offset
+							if (split.length > ++len) {
+								week = parseInt(split[len]);
+							}
+							// Wochentag
+							if (split.length > ++len) {
+								for (let i = 1; i < WEEK_DAYS.length; i++) {
+									if (WEEK_DAYS[i].toLowerCase().startsWith(split[len].toLowerCase())) {
+										dow = i;
+										break;
+									}
+								}
+							}
+							// Referenz-Tag
+							if (split.length > ++len) {
+								// Auf Monat prüfen
+								if(new RegExp("^\\d+$").test(split[len])) {
+									month=parseInt(split[len]);								
+								}
+								else if (easter.getName().toLowerCase().startsWith(split[len].toLowerCase())) {
+									ref = easter;
+								}
+								else if (advent.getName().toLowerCase().startsWith(split[len].toLowerCase())) {
+									ref = advent;
+								}
+								else if("advent".startsWith(split[len].toLowerCase())) {
+									ref = advent;
+								}
+							}
+							// Name
+							while (split.length > ++len) {
+								if(name.length>0) name+=" ";
+								name+=split[len];
+							}
+
+							if (name.length > 0) {
+								if(month>0) myDays.push(new MonthDay(week,dow,month,name.toString()));							
+								else myDays.push(new ChurchDay(name.toString(), dow, week, ref));
+							}
+						}
+
+						myDays.sort(function(o1, o2) {
+							return o1.getName().localeCompare(o2.getName());
+						});
+					
+						let kirchentagTag = document.getElementById("kirchentag-tag");
+						while(kirchentagTag.firstChild)
+							kirchentagTag.firstChild.remove();
+						myDays.forEach(day => {
+							let option=document.createElement("option");
+							option.textContent=day.getName();
+							option.value=day;
+							option.ktt=day;
+							kirchentagTag.appendChild(option);
+						});
+						kirchentagTag.value=kirchentagTag.firstChild.value;
+					}
+					addTriggers();
+					calculateKirchentag();
+				}
+				catch(ex) {
+					console.log(ex);
+				}
+			}
+
+			function addTriggers() {
+				document.getElementById("kirchentag-number").onchange=calculateKirchentag;
+				document.getElementById("kirchentag-dow").onchange=calculateKirchentag;
+				document.getElementById("kirchentag-rel").onchange=calculateKirchentag;
+				document.getElementById("kirchentag-tag").onchange=calculateKirchentag;
+				document.getElementById("kirchentag-jahr").onchange=calculateKirchentag;
+			}
+
+			function calculateKirchentag() {
+				let num=parseInt(document.getElementById("kirchentag-number").value);
+				let dow=document.getElementById("kirchentag-dow").selectedIndex;
+				let rel=parseInt(document.getElementById("kirchentag-rel").value);
+				let jahr=parseInt(document.getElementById("kirchentag-jahr").value);
+				let ktt=document.getElementById("kirchentag-tag");
+				let tag=ktt.options[ktt.selectedIndex].ktt;
+
+				console.log("calculateKirchentag{");
+				console.log("num: "+num+", dow: "+dow+", rel: "+rel+", tag: "+tag+", jahr: "+jahr);
+
+				let day;
+				
+				if(rel == 0) day= tag;
+				else if(dow==0) day=new Day(null,null, tag,num*rel,null,null);
+				else day=new Day(dow, num * rel, tag,null, null);
+
+				let gregDate=day.getGregorianDate(jahr);
+				let julDate=day.getJulianDate(jahr);
+				
+				console.log("gregorian: "+gregDate.toString());
+				console.log("julian: "+julDate.toString());
+				console.log("}");
+
+				document.getElementById("kirchentag-datum-jul").innerHTML=julDate.toString(Calendar.FORMAT_DOT);
+				document.getElementById("kirchentag-dow-jul").innerHTML=WEEK_DAYS[julDate.get(Calendar.DAY_OF_WEEK)];
+				document.getElementById("kirchentag-datum-gre").innerHTML=gregDate.toString(Calendar.FORMAT_DOT);
+				document.getElementById("kirchentag-dow-gre").innerHTML=WEEK_DAYS[gregDate.get(Calendar.DAY_OF_WEEK)];
+			}
+
+			function setDaysOfMonth() {
+				let year=parseInt(document.getElementById("wochentage-jahr").value,10);
+				let month=1+document.getElementById("wochentage-monat").selectedIndex;
+				let julian=document.getElementById("wochentage-toggle").value;
+				let buttons=document.getElementById("wochentage-kalender").getElementsByTagName("button");
+
+				let cal=new GregorianCalendar(year,month,1,julian);
+				let dow=cal.get(Calendar.DAY_OF_WEEK);
+				let last=dow;
+				do {
+					last+=1;
+					cal.add(Calendar.DAY_OF_MONTH,1);
+				}while(cal.get(Calendar.MONTH)==month);
+
+				for(let i=1;i<=buttons.length;i++) 
+					buttons[i-1].innerHTML=(i>=dow && i<last)?(""+(i+1-dow)):"";
+			}
+
+			function calculateBirthDate() {
+				let julian=document.getElementById("alter-toggle").value;
+				let deathdate=getDatum(document.getElementById("alter-tod").value,julian);
+				let years=parseInt(document.getElementById("alter-jahre").value);
+				let months=parseInt(document.getElementById("alter-monate").value);
+				let weeks=parseInt(document.getElementById("alter-wochen").value);
+				let days=parseInt(document.getElementById("alter-tage").value);
+
+				console.log("age: "+years+" a "+months+" m "+weeks+" w "+days+" d");
+				
+				if(deathdate) {
+					let cal=deathdate.clone();
+					cal.add(Calendar.YEAR,-years);
+					cal.add(Calendar.MONTH,-months);
+					cal.add(Calendar.DAY_OF_MONTH,-(days+(weeks*7)));
+					console.log("birthdate: "+cal);
+					document.getElementById("alter-geburt").value=cal.toString(Calendar.FORMAT_DASH);
+				}
+			}
+
+			function calculateDeathDate() {
+				let julian=document.getElementById("alter-toggle").value;
+				let birthdate=getDatum(document.getElementById("alter-geburt").value,julian);
+				let years=parseInt(document.getElementById("alter-jahre").value);
+				let months=parseInt(document.getElementById("alter-monate").value);
+				let weeks=parseInt(document.getElementById("alter-wochen").value);
+				let days=parseInt(document.getElementById("alter-tage").value);
+
+				console.log("age: "+years+" a "+months+" m "+weeks+" w "+days+" d");
+				
+				if(birthdate) {
+					let cal=birthdate.clone();
+					cal.add(Calendar.YEAR,years);
+					cal.add(Calendar.MONTH,months);
+					cal.add(Calendar.DAY_OF_MONTH,days+(weeks*7));
+					console.log("deathdate: "+cal);
+					document.getElementById("alter-tod").value=cal.toString(Calendar.FORMAT_DASH);
+				}
+
+			}
+
+			function calculateAge() {
+				let julian=document.getElementById("alter-toggle").value;
+				let birthdate=getDatum(document.getElementById("alter-geburt").value,julian);
+				let deathdate=getDatum(document.getElementById("alter-tod").value,julian);
+
+				if(birthdate && deathdate) {
+					let cal=birthdate.clone();
+					let years=getDiff(cal,deathdate,Calendar.YEAR);
+					let months=getDiff(cal,deathdate,Calendar.MONTH);
+					let days=getDiff(cal,deathdate,Calendar.DAY_OF_MONTH)+1;
+					let weeks=Math.floor(days / 7);
+					days -= weeks * 7;
+
+					console.log("age: "+years+" a "+months+" m "+weeks+" w "+days+" d");
+
+					document.getElementById("alter-jahre").value=years;
+					document.getElementById("alter-monate").value=months;
+					document.getElementById("alter-wochen").value=weeks;
+					document.getElementById("alter-tage").value=days;
+				}
+			}
+
+			function getDiff(start, end, field) {
+				let value=-1;
+				while(start.isBefore(end)) {
+					start.add(field,1);
+					value++;
+				}
+				start.add(field,-1);
+				return value;
+			}
+
+			function getDatum(dateString, julian) {
+				let parts=dateString.split("-");
+				if(parts.length!=3) return null;
+				return new GregorianCalendar(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]),julian);
+			}
+
+			window.onload=function () {
+				setDaysOfMonth();
+				loadChurchDays();	
+			}
+		</script>
+		<style type="text/css">
+			input, select, button {
+				box-sizing: border-box;
+				-moz-box-sizing: border-box;
+				-webkit-box-sizing: border-box;
+				border: 1px solid black;
+				height: 2.5em;
+				padding: 0 .5em;
+			}
+			
+			input[type="number"] {
+				text-align: right;
+			}
+			
+			span.label,
+			label {
+				line-height: 2.5em;
+			}
+			
+			header {
+				font-size: 150%;
+				margin: 10px;
+			}
+			
+			div#tabs {
+				width: 100%;
+				display: flex;
+			}
+			
+			div#tabs > button {
+				flex-grow: 1;
+				border: none;
+				background: lightgray;
+				padding: 10px 5px
+			}
+			
+			div#tabs > button:not(:first-child) {
+				border-left: solid black 1px;
+			}
+			
+			div#tabs > button.active {
+				background: darkgray;
+				color: white;
+				font-weight: bold;
+			} 
+			
+			section {
+				display: none;
+			}
+			
+			section.active {
+				display: block;
+			}
+			
+			section > .row {
+				padding: 5px;
+				display: flex;
+				flex-direction: column;
+			} 
+			
+			section > .row > *:not(:first-child) {
+				margin: .5em 0 0 0;
+			}
+			
+			@media screen and (min-width: 321px) {
+				section > .row {
+					display: flex;
+					flex-direction: row;  
+					flex-wrap: wrap;
+				} 
+			
+				section > .row > *:not(:first-child) {
+					margin: 0 0 0 .5em;
+				}
+			
+				input[type="number"] {
+					width: 5em;
+				}
+				
+				.toggle {
+					width: 8em;
+					text-align: center;
+				}
+			
+				section#alter div:nth-child(2n) {
+					margin-left: 1em;
+				}
+				
+				select.showAll {
+					height: auto;
+					overflow-y: auto;
+					scrollbar-width: none;
+				}
+			
+			}    
+			
+			section#wochentage #wochentage-kalender {
+				display: grid;
+				grid-template-columns: repeat(7, 3em);
+				grid-gap: 0px;
+			}
+			
+			section#wochentage #wochentage-kalender > .dom {
+				height: 2.5em;
+				line-height: 2.5em;
+				border: solid 1px black;
+			}
+			
+			section#wochentage #wochentage-kalender > span {
+				font-weight: bold;
+				background: lightgray;
+				text-align: center;
+				padding-top: .1em;
+			}
+			
+			section#wochentage #wochentage-kalender > button {
+				text-align: right;
+			}
+			
+			select.showAll > option {
+				height: 1em;
+				padding: .5em;
+			}
+			
+			section#kirchentag table th {
+				text-align: left;    
+				padding: .5em;
+			}
+			
+			section#kirchentag table th:after {
+				content: ":";
+			}
+			
+			section#kirchentag table td {
+				border: solid 1px grey;
+				padding: .5em;
+			}
+		</style>
+			
+		<!-- favicon from https://www.freefavicon.com/freefavicons/icons/iconinfo/calendar-icon-152-213247.html -->
+		<link rel="shortcut icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAQAQEAAAAEAIAAoQgAARgAAADAwAAABACAAqCUAAG5CAAAgIAAAAQAgAKgQAAAWaAAAEBAAAAEAIABoBAAAvngAACgAAABAAAAAgAAAAAEAIAAAAAAAAEAAABILAAASCwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADFAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA7QAAAI8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA0QAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAPoAAACXAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANEAAAD/AAAA/QAAAPQAAADqAAAA6AAAAOgAAADoAAAA6AAAAOgAAADoAAAA6AAAAOgAAADoAAAA6AAAAOgAAADoAAAA6AAAAOgAAADoAAAA6AAAAOgAAADoAAAA6AAAAOgAAADoAAAA6AAAAOgAAADoAAAA6AAAAOgAAADoAAAA6AAAAOgAAADoAAAA6AAAAOgAAADoAAAA6AAAAOgAAADoAAAA6AAAAOgAAADoAAAA6AAAAOgAAADrAAAA9wAAAP4AAAD6AAAAlwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADRAAAA/wAA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AOsAAAD1AAAA9gAAAOsAAADoAAAA6AAAAOgAAADoAAAA6AAAAOgAAADoAAAA6QAAAPUAAAD4AAAA6wAAAOgAAADoAAAA6AAAAOgAAADoAAAA6AAAAOgAAADqAAAA9AAAAPcAAADsAAAA6AAAAOgAAADoAAAA6AAAAOgAAADoAAAA6QAAAPQAAAD+AAAA+QAAAK8AAAAnAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANEAAAD/AAAA6QAAAH8AAABGAAAAuAAAAPoAAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAPkAAACvAAAAJwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADRAAAA/wAAAOkAAAB/AAAARgAAALgAAAD6AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD5AAAArwAAACcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA0QAAAP8AAADpAAAAfwAAAEYAAAC4AAAA+gAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA+QAAAK8AAAAnAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANEAAAD/AAAA6QAAAH8AAABGAAAAuAAAAPoAAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAPkAAACvAAAAJwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADRAAAA/wAAAOkAAACBAAAARwAAALgAAAD6AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD5AAAArwAAACcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA0QAAAP8AAADtAAAAkwAAAFgAAAC9AAAA+gAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA+QAAAK8AAAAnAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANEAAAD/AAAA+AAAAM0AAACjAAAA1QAAAPwAAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAPkAAACvAAAAJwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACzAAAA9AAAAP0AAAD5AAAA7gAAAPUAAAD+AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD5AAAArwAAACcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATQAAAJ4AAADeAAAA+gAAAP4AAAD+AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA+QAAAK8AAAAnAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoAAAApAAAAbAAAALwAAADuAAAA/gAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAPkAAACvAAAAJwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwAAABIAAAA+AAAAlwAAAN8AAADwAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADxAAAA8QAAAPEAAADrAAAApQAAACUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4AAAAAAAAf/gAAAAAAAB/+AAAAAAAAH/4AAAAAAAAf/gAAAAAAAAB+AAAAAAAAAH4IAAAAAAAAfgAAAAAAAAB+AAAAAAAAAH4AAAAAAAAAfgAAAAAAAAB+AD4H4HgfAP4APgfgeB8A/gA+B8D4HgH+AD4HwPgeAf4APgfB+B4B/gAAAAAAAAP+AAAAAAAAA/4AAAAAAAAD/gAAAAAAAAP+AAAAAAAAA/4AAAAAAAAD/gA8D8PwPAP+ADwPw/A8A/4APA/D8DwD/gA8D8PwPAP+ADwPw/A8A/4APA/D8DwD/gAAAAAAAAP+AAAAAAAAA/4AAAAAAAAD/gAAAAAAAAP+ADwPw/A8A/4APA/D8DwD/gA8D8PwPAP+ADwPw/A8A/4APA/D8DwD/gA8D8PwPAP+ADwPw/A8A/4AAAAAAAAD/gAAAAAAAAP+AAAAAAAAA/4AAAAAAAAD/gA8D8PwPAP+ADwPw/A8A/4APA/D8DwD/gA8D8PwPAP+ADwPw/A8A/4APA/D8DwD/gAAAAAAAAP+AAAAAAAAA/4AAAAAAAAD/gAAAAAAAAP+AAAAAAAAA/4AAAAAAAAD/gAAAAAAAAP+AAAAAAAAA/4AAAAAAAAD/gAAAAAAAAP+AAAAAAAAA/4AAAAAAAAD/gAAAAAAAAP+AAAAAAAAA/4AAAAAAAAD8oAAAAMAAAAGAAAAABACAAAAAAAAAkAAASCwAAEgsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1QAAAPQAAAD0AAAA9AAAAPMAAADzAAAA8wAAAPMAAADzAAAA8wAA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AEwAAABMAAAATAAAAE4AAACCAAAA4wAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAADUAAAASgAAAAoAAAAIAAAACAAAAAgAAAAXAAAAbQAAAIAAAAAZAAAACAAAAAgAAAAIAAAACAAAABkAAABsAAAAeAAAACEAAAAIAAAACAAAAAgAAAAIAAAAEgAAAHIAAAB7AAAAHwAAAAgAAAAIAAAACAAAAAsAAABSAAAA2AAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAADSAAAARAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAaQAAAHwAAAASAAAAAAAAAAAAAAAAAAAAAAAAABEAAABnAAAAdAAAABkAAAAAAAAAAAAAAAAAAAAAAAAACgAAAG0AAAB3AAAAGAAAAAAAAAAAAAAAAAAAAAMAAABNAAAA1wAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAADSAAAARAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAaQAAAHwAAAASAAAAAAAAAAAAAAAAAAAAAAAAABEAAABnAAAAdAAAABkAAAAAAAAAAAAAAAAAAAAAAAAACgAAAG0AAAB3AAAAGAAAAAAAAAAAAAAAAAAAAAMAAABNAAAA1wAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAADSAAAARAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAaQAAAHwAAAASAAAAAAAAAAAAAAAAAAAAAAAAABEAAABnAAAAdAAAABkAAAAAAAAAAAAAAAAAAAAAAAAACgAAAG0AAAB3AAAAGAAAAAAAAAAAAAAAAAAAAAMAAABNAAAA1wAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAADTAAAARAAAAAIAAAABAAAAAQAAAAEAAAAQAAAAaQAAAHwAAAASAAAAAQAAAAEAAAABAAAAAQAAABIAAABnAAAAdAAAABoAAAABAAAAAQAAAAEAAAABAAAACwAAAG0AAAB3AAAAGAAAAAEAAAABAAAAAQAAAAQAAABNAAAA1wAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAADYAAAAWgAAAB8AAAAeAAAAHgAAAB4AAAAsAAAAegAAAIsAAAAtAAAAHgAAAB0AAAAdAAAAHgAAAC0AAAB4AAAAhAAAADQAAAAeAAAAHgAAAB4AAAAeAAAAJwAAAH4AAACHAAAAMgAAAB4AAAAdAAAAHQAAACAAAABhAAAA3AAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAADoAAAAoAAAAH8AAAB+AAAAfgAAAH4AAACGAAAAswAAALwAAACGAAAAfQAAAH0AAAB9AAAAfQAAAIYAAACyAAAAuAAAAIsAAAB+AAAAfgAAAH4AAAB+AAAAgwAAALUAAAC6AAAAiQAAAH0AAAB9AAAAfQAAAH8AAACkAAAA6gAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAADmAAAAmAAAAHMAAAByAAAAcgAAAHMAAAB7AAAArAAAALYAAAB8AAAAcgAAAHIAAAByAAAAcgAAAHwAAACrAAAAsgAAAIEAAABzAAAAcgAAAHIAAABzAAAAeAAAAK8AAAC0AAAAfwAAAHMAAAByAAAAcgAAAHQAAACcAAAA6AAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAADVAAAATQAAAA8AAAANAAAADQAAAA0AAAAcAAAAcQAAAIIAAAAeAAAADgAAAA0AAAANAAAADQAAAB4AAABvAAAAewAAACUAAAAOAAAADQAAAA0AAAANAAAAFwAAAHUAAAB+AAAAJAAAAA4AAAANAAAADQAAABAAAABVAAAA2QAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAADSAAAARAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAaQAAAHwAAAASAAAAAAAAAAAAAAAAAAAAAAAAABEAAABnAAAAdAAAABkAAAAAAAAAAAAAAAAAAAAAAAAACgAAAG0AAAB3AAAAGAAAAAAAAAAAAAAAAAAAAAMAAABMAAAA1wAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAADSAAAARAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAaQAAAHwAAAASAAAAAAAAAAAAAAAAAAAAAAAAABEAAABnAAAAdAAAABkAAAAAAAAAAAAAAAAAAAAAAAAACgAAAG0AAAB3AAAAGAAAAAAAAAAAAAAAAAAAAAMAAABMAAAA1wAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAADSAAAARAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAaQAAAHwAAAASAAAAAAAAAAAAAAAAAAAAAAAAABEAAABnAAAAdAAAABkAAAAAAAAAAAAAAAAAAAAAAAAACgAAAG0AAAB3AAAAGAAAAAAAAAAAAAAAAAAAAAMAAABMAAAA1wAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAADSAAAARAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAaQAAAHwAAAASAAAAAAAAAAAAAAAAAAAAAAAAABIAAABnAAAAdAAAABoAAAABAAAAAAAAAAAAAAAAAAAACwAAAG0AAAB3AAAAGAAAAAEAAAAAAAAAAAAAAAMAAABMAAAA1wAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAADVAAAATwAAABEAAAAPAAAADwAAABAAAAAeAAAAcgAAAIQAAAAgAAAAEAAAAA8AAAAPAAAAEAAAACAAAABwAAAAfAAAACcAAAAQAAAADwAAAA8AAAAPAAAAGQAAAHYAAAB/AAAAJgAAABAAAAAPAAAADwAAABIAAABXAAAA2QAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAADlAAAAkwAAAG0AAABsAAAAbAAAAGwAAAB1AAAAqQAAALMAAAB3AAAAbAAAAGwAAABsAAAAbAAAAHYAAACnAAAArwAAAHsAAABtAAAAbAAAAGwAAABsAAAAcgAAAKsAAACxAAAAegAAAG0AAABsAAAAbAAAAG4AAACYAAAA6AAAANkAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAAD4AAAA5QAAANsAAADbAAAA2wAAANsAAADdAAAA6gAAAO0AAADeAAAA2wAAANsAAADbAAAA2wAAAN4AAADqAAAA6wAAAN8AAADbAAAA2wAAANsAAADbAAAA3QAAAOsAAADsAAAA3wAAANsAAADbAAAA2wAAANwAAADmAAAA+QAAANoAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAAD+AAAA/QAAAP0AAAD9AAAA/QAAAP0AAAD9AAAA/gAAAP4AAAD9AAAA/QAAAP0AAAD9AAAA/QAAAP0AAAD+AAAA/gAAAP0AAAD9AAAA/QAAAP0AAAD9AAAA/QAAAP4AAAD+AAAA/QAAAP0AAAD9AAAA/QAAAP0AAAD+AAAA/gAAANoAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACQAAAAfwAAAN4AAAD+AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/gAAANoAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOYAAACRAAAAgAAAAN4AAAD+AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/gAAANoAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3QAAAOkAAACcAAAAiwAAAOEAAAD+AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/gAAANoAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA2AAAAPIAAADHAAAAuAAAAOsAAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/gAAANoAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqAAAAOQAAADtAAAA7AAAAPkAAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/gAAANoAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQAAAI4AAADQAAAA9AAAAP4AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/gAAANoAAABbAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACQAAACUAAABkAAAAugAAAO0AAAD0AAAA9AAAAPQAAAD0AAAA9AAAAPQAAAD0AAAA9AAAAPQAAAD0AAAA9AAAAPQAAAD0AAAA9AAAAPQAAAD0AAAA9AAAAPQAAAD0AAAA9AAAAPQAAAD0AAAA9AAAAPQAAAD0AAAA9AAAAPQAAAD0AAAA9AAAAPQAAAD0AAAA9AAAANEAAABXAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAA4AAAAAB/AADgAAAAAH8AAOAAAAAABwAA4AAAAAAHAADgAAAAAAcAAOAAAAAABwAA4AAAAAAHAADgAAAAAAcAAOAAAAAABwAA4AwMDAgHAADgDAgMCAcAAOAAAAAABwAA4AAAAAAPAADgAAAAAA8AAOAAAAAADwAA4AAAAAAPAADgAAAAAA8AAOAIGBgQDwAA4AgYGBAPAADgCBgYEA8AAOAAAAAADwAA4AAAAAAPAADgAAAAAA8AAOAAAAAADwAA4AAAAAAPAADgCBgYEA8AAOAIGBgQDwAA4AgYGBAPAADgAAAAAA8AAOAAAAAADwAA4AAAAAAPAADgAAAAAA8AAOAAAAAADwAA4AgYGBAPAADgCBgYEA8AAOAIGBgQDwAA4AAAAAAPAADgAAAAAA8AAOAAAAAADwAA4AAAAAAPAADgAAAAAA8AAOAAAAAADwAA4AAAAAAPAADgAAAAAA8AAOAAAAAADwAA4AAAAAAPAADgAAAAAA8AAOAAAAAADwAAKAAAACAAAABAAAAAAQAgAAAAAAAAEAAAEgsAABILAAAAAAAAAAAAAAAAAAAAAAAAAAAA4gAAAPUAAADxAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPAAAADwAAAA8AAAAPMAAAD0AAAAaAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADmAAAA4gAAALQAAACuAAAArwAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAygAAAPAAAABsAAAABQAAAAIAAAACAAAAAAAAAAAAAAAAAAAAAAAAAOEAAACuAAAAKwAAACEAAABWAAAAdAAAAHcAAAB3AAAAdwAAAHcAAAB3AAAAdwAA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"
+	</head>
+	<body>
+		<header>Berechnung von Kalenderdaten anhand von Kirchentagen, Wochentage, Altersbestimmung</header>
+		<div id="tabs">
+			<button id="tab-wochentage" class="active" onclick="openTab(this)">Monatskalender</button>
+			<button id="tab-alter" onclick="openTab(this)">Altersbestimmung</button>
+			<button id="tab-kirchentag" onclick="openTab(this)">Kirchentag</button>
+		</div>
+		<section id="wochentage" class="active">
+			<div class="row">
+				<select id="wochentage-monat" onchange="setDaysOfMonth()">
+					<option value="0">Januar</option>
+					<option value="1">Februar</option>
+					<option value="2">März</option>
+					<option value="3">April</option>
+					<option value="4">Mai</option>
+					<option value="5">Juni</option>
+					<option value="6">Juli</option>
+					<option value="7">August</option>
+					<option value="8">September</option>
+					<option value="9">Oktober</option>
+					<option value="10">November</option>
+					<option value="11">Dezember</option>
+				</select>
+				<input type="number" id="wochentage-jahr" value="2020" onchange="setDaysOfMonth()"/>
+				<button id="wochentage-toggle" class="toggle" value="0" onclick="toggle(this);setDaysOfMonth();" title="Zwischen Gregorianischem und Julianischem Kalender umschalten">Gregorianisch</button>
+			</div>
+			<div id="wochentage-kalender">
+				<span class="dom">Mo</span><span class="dom">Di</span><span class="dom">Mi</span><span class="dom">Do</span><span class="dom">Fr</span><span class="dom">Sa</span><span class="dom">So</span>
+				<button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button>
+				<button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button>
+				<button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button>
+				<button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button>
+				<button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button>
+				<button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button><button class="dom"></button>
+			</div>
+		</section>
+		<section id="alter">
+			<div class="row">
+				<label for="alter-start">*</label>
+				<input type="date" id="alter-geburt" title="Geburtsdatum" placeholder=""/>
+				<button title="Geburtsdatum ermitteln" onclick="calculateBirthDate()">?</button>
+			</div>
+			<div class="row">				
+				<input type="number" id="alter-jahre" title="Anzahl Jahre"/>
+				<label for="alter-jahre">Jahre</label>
+				<input type="number" id="alter-monate" title="Anzahl Monate"/>
+				<label for="alter-monate">Monate</label>
+				<input type="number" id="alter-wochen" title="Anzahl Wochen"/>
+				<label for="alter-wochen">Wochen</label>
+				<input type="number" id="alter-tage" title="Anzahl Tage"/>
+				<label for="alter-tage">Tage</label>
+				<button title="Alter ermitteln" onclick="calculateAge()">?</button>
+			</div>
+			<div class="row">
+				<label for="alter-tod">+</label>
+				<input type="date" id="alter-tod" title="Sterbedatum" />
+				<button title="Sterbedatum ermitteln" onclick="calculateDeathDate()">?</button>
+			</div>
+			<div class="row">
+				<button id="alter-toggle" class="toggle" value="0" onclick="toggle(this)" title="Zwischen Gregorianischem und Julianischem Kalender umschalten">Gregorianisch</button>
+			</div>
+		</section>
+		<section id="kirchentag">
+			<div class="row">
+				<input type="number" id="kirchentag-number"/>
+				<label for="kirchentag-number">.</label>
+				<select id="kirchentag-dow" class="showAll" size="8">
+					<option value="0" selected>Tag</option>
+					<option value="1">Montag</option>
+					<option value="2">Dienstag</option>
+					<option value="3">Mittwoch</option>
+					<option value="4">Donnerstag</option>
+					<option value="5">Freitag</option>
+					<option value="6">Samstag</option>
+					<option value="7">Sonntag</option>
+				</select>
+				<select id="kirchentag-rel" class="showAll" size="3">
+					<option value="-1">vor</option>
+					<option value="0" selected>genau</option>
+					<option value="1">nach</option>
+				</select>
+				<select id="kirchentag-tag" class="showAll" size="20">
+					<option selected>Ostern</option>
+					<option>Weihnachten</option>
+				</select>
+				<input type="number" id="kirchentag-jahr" title="Jahr" value="2020"/>
+				<table>
+					<tbody>
+						<tr>
+							<th>julianisch</th>
+							<td id="kirchentag-datum-jul">20.10.2010</td>
+							<td id="kirchentag-dow-jul">Montag</td>
+						</tr>
+						<tr>
+							<th>gregorianisch</th>
+							<td id="kirchentag-datum-gre">20.10.2010</td>
+							<td id="kirchentag-dow-gre">Montag</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
+	</body>
+</html>

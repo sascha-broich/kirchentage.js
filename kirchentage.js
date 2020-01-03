@@ -1,3 +1,78 @@
+const KIRCHENTAGE = [ 
+	// Format :
+	// beweglich: n-ter <tab> Wochentag <tab> anderer Kirchentag (Namensanfang, klein) <tab>  Name
+	// fest: tag.monat <tab> Name
+	"1	so	o	Quasimodogeniti",
+	"2	so	o	Misericordias Domini",
+	"3	so	o	Jubilate ",
+	"4	so	o	Cantate",
+	"5	so	o	Rogate(Jucunditatis)",
+	"6	so	o	Exaudi",
+	"7	so	o	Pfingsten",
+	"8	so	o	Trinitatis",
+	"-7	di	o	Fastnacht",
+	"-7	mi	o	Aschermittwoch",
+	"-7	so	o	Quinquagesima (Estomihi)",
+	"-9	so	o	Septuagesima",
+	"-8	so	o	Sexagesima",
+	"-6	so	o	Invocavit",
+	"-5	so	o	Reminiscere",
+	"-4	so	o	Oculi",
+	"-3	so	o	Laetare",
+	"-2	so	o	Judica",
+	"-1	so	o	Palmarum",
+	"-1	do	o	Gründonnerstag",
+	"6	do	o	Himmelfahrt",
+	"1.9.	Ägidius",
+	"30.11.	Andreas",
+	"24.8.	Bartholomäus",
+	"21.3.	Benedict",
+	"5.6.	Bonifatius",
+	"21.10.	Burkhardt",
+	"5.11.	Elisabeth",
+	"20.1.	Fabian Sebastian",
+	"4.10.	Franziscus",
+	"16.10.	Gallus",
+	"12.3.	Gregor",
+	"17.3.	Gertraudt",
+	"1.5.	Jacobi",
+	"25.7.	Jacob d. Ä.",
+	"27.12.	Johannis Evangelist",
+	"24.6.	Johannistag",
+	"29.8.	Johannes Enthauptung",
+	"25.11.	Katharina",
+	"8.7.	Kilian",
+	"14.9.	Kreuzerhöhung",
+	"10.8.	Laurentius",
+	"13.12.	Lucia Odilia",
+	"20.7.	Margareta",
+	"8.9.	Mariae Geburt",
+	"2.7.	Mariae Heimsuchung",
+	"15.8.	Mariae Himmelfahrt",
+	"2.2.	Mariae Lichtmeß",
+	"25.3.	Mariae Verkündigung",
+	"22.7.	Maria Magdalena	",
+	"11.11.	Martin",
+	"21.9.	Matthäus",
+	"8.6.	Medardus",
+	"29.9.	Michaelis",
+	"25.1.	Pauli Bekehrung",
+	"29.6.	Peter Paul",
+	"1.8.	Petri Kettenfeier",
+	"22.2.	Petri Stuhlfeier",
+	"1.5.	Phillip und Jacobus",
+	"28.10.	Simon und Judas",
+	"26.12.	Stephan",
+	"21.12.	Thomas",
+	"4.6.	Ulrich",
+	"21.10.	Ursula",
+	"14.2.	Valentin",
+	"15.6.	Vitus",
+	"1.11.	Allerheiligen",
+	"24.6.	Johannes der Täufer",
+	"25.12.	Weihnachten",
+	"6.1.	Drei Könige",	
+];
 const myDays = new Array();
 const WEEK_DAYS	= ["Tag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
 const PRE_POST	= ["vor", "genau", "nach"];
@@ -412,7 +487,6 @@ MonthDay = class extends ChurchDay {
 
 loadChurchDays = function()
 {
-
 	const easter = new Easter();
 	const advent = new Advent();
 
@@ -421,100 +495,95 @@ loadChurchDays = function()
 
 	try
 	{
-		let request=new XMLHttpRequest();
-		request.open("GET",self.location.href.substring(0,self.location.href.lastIndexOf("/")+1) + "kirchentage.txt",true);
-		request.send();
-		request.onload=function(){
-			let lines=request.responseText.split(/\r?\n/);
-			lines.forEach(line => {
-				if(line.trim().startsWith("#")) {
-					return;
+		for(let i=0;i<KIRCHENTAGE.length;i++) {
+			let line=KIRCHENTAGE[i];
+			if(line.trim().startsWith("#")) {
+				continue;
+			}
+			let split = line.split("\t");
+			for (let i = 0; i < split.length; i++) {
+				split[i] = split[i].trim();
+			}					
+			if (split.length >= 2 && split[0].indexOf(".") >0) {
+				// Datum lesen: dd.MM.
+				let date = split[0].split(".");
+				let dayOfMonth = parseInt(date[0]);
+				let month = parseInt(date[1]);
+				let name = "";
+				for(let i=1;i<split.length;i++) {
+					if(i>1) name+=" ";
+					name+=split[i];
 				}
-				let split = line.split("\t");
-				for (let i = 0; i < split.length; i++) {
-					split[i] = split[i].trim();
-				}					
-				if (split.length >= 2 && split[0].indexOf(".") >0) {
-					// Datum lesen: dd.MM.
-					let date = split[0].split(".");
-					let dayOfMonth = parseInt(date[0]);
-					let month = parseInt(date[1]);
-					let name = "";
-					for(let i=1;i<split.length;i++) {
-						if(i>1) name+=" ";
-						name+=split[i];
-					}
-					myDays.push(new ChurchDay(name, null, null, null, dayOfMonth, month));
+				myDays.push(new ChurchDay(name, null, null, null, dayOfMonth, month));
+			}
+			else
+			{
+				let name = "";
+				let week = 0;
+				let dow = 7;
+				let ref = easter;
+				let month=-1;
+
+				let len = -1;
+				// Offset
+				if (split.length > ++len) {
+					week = parseInt(split[len]);
 				}
-				else
-				{
-					let name = "";
-					let week = 0;
-					let dow = 7;
-					let ref = easter;
-					let month=-1;
-
-					let len = -1;
-					// Offset
-					if (split.length > ++len) {
-						week = parseInt(split[len]);
-					}
-					// Wochentag
-					if (split.length > ++len) {
-						for (let i = 1; i < WEEK_DAYS.length; i++) {
-							if (WEEK_DAYS[i].toLowerCase().startsWith(split[len].toLowerCase())) {
-								dow = i;
-								break;
-							}
+				// Wochentag
+				if (split.length > ++len) {
+					for (let i = 1; i < WEEK_DAYS.length; i++) {
+						if (WEEK_DAYS[i].toLowerCase().startsWith(split[len].toLowerCase())) {
+							dow = i;
+							break;
 						}
-					}
-					// Referenz-Tag
-					if (split.length > ++len) {
-						// Auf Monat prüfen
-						if(new RegExp("^\\d+$").test(split[len])) {
-							month=parseInt(split[len]);								
-						}
-						else if (easter.getName().toLowerCase().startsWith(split[len].toLowerCase())) {
-							ref = easter;
-						}
-						else if (advent.getName().toLowerCase().startsWith(split[len].toLowerCase())) {
-							ref = advent;
-						}
-						else if("advent".startsWith(split[len].toLowerCase())) {
-							ref = advent;
-						}
-					}
-					// Name
-					while (split.length > ++len) {
-						if(name.length>0) name+=" ";
-						name+=split[len];
-					}
-
-					if (name.length > 0) {
-						if(month>0) myDays.push(new MonthDay(week,dow,month,name.toString()));							
-						else myDays.push(new ChurchDay(name.toString(), dow, week, ref));
 					}
 				}
+				// Referenz-Tag
+				if (split.length > ++len) {
+					// Auf Monat prüfen
+					if(new RegExp("^\\d+$").test(split[len])) {
+						month=parseInt(split[len]);								
+					}
+					else if (easter.getName().toLowerCase().startsWith(split[len].toLowerCase())) {
+						ref = easter;
+					}
+					else if (advent.getName().toLowerCase().startsWith(split[len].toLowerCase())) {
+						ref = advent;
+					}
+					else if("advent".startsWith(split[len].toLowerCase())) {
+						ref = advent;
+					}
+				}
+				// Name
+				while (split.length > ++len) {
+					if(name.length>0) name+=" ";
+					name+=split[len];
+				}
 
-				myDays.sort(function(o1, o2) {
-					return o1.getName().localeCompare(o2.getName());
-				});
-			
-				let kirchentagTag = document.getElementById("kirchentag-tag");
-				while(kirchentagTag.firstChild)
-					kirchentagTag.firstChild.remove();
-				myDays.forEach(day => {
-					let option=document.createElement("option");
-					option.textContent=day.getName();
-					option.value=day;
-					option.ktt=day;
-					kirchentagTag.appendChild(option);
-				});
-				kirchentagTag.value=kirchentagTag.firstChild.value;
+				if (name.length > 0) {
+					if(month>0) myDays.push(new MonthDay(week,dow,month,name.toString()));							
+					else myDays.push(new ChurchDay(name.toString(), dow, week, ref));
+				}
+			}
+
+			myDays.sort(function(o1, o2) {
+				return o1.getName().localeCompare(o2.getName());
 			});
-			addTriggers();
-			calculateKirchentag();
-		};
+		
+			let kirchentagTag = document.getElementById("kirchentag-tag");
+			while(kirchentagTag.firstChild)
+				kirchentagTag.firstChild.remove();
+			myDays.forEach(day => {
+				let option=document.createElement("option");
+				option.textContent=day.getName();
+				option.value=day;
+				option.ktt=day;
+				kirchentagTag.appendChild(option);
+			});
+			kirchentagTag.value=kirchentagTag.firstChild.value;
+		}
+		addTriggers();
+		calculateKirchentag();
 	}
 	catch(ex) {
 		console.log(ex);

@@ -120,11 +120,6 @@ const Calendar = {
 }
 
 Datum = class {
-	year;
-	month;
-	day;
-	julian;
-
 	constructor(year,month,day,julian) {
 		this.year=Math.floor(year);
 		this.month=Math.floor(month);
@@ -142,12 +137,10 @@ Datum = class {
 }
 
 GregorianCalendar = class {
-	julianDay;
-	julian=false;
-	firstGregorianDay=2299159.5;
-	switchDate=this.calc(this.firstGregorianDay);
-
 	constructor(year, month, day, julian=false) {
+		this.firstGregorianDay=2299159.5;
+		this.switchDate=this.calc(this.firstGregorianDay);
+	
 		this.setJulian(julian);
 		this.set(year,month,day);
 	}
@@ -308,17 +301,10 @@ GregorianCalendar = class {
 };
 
 Day = class {
-	myReference; // Day
-	myWeekOffset; //int 
-	myDayOfWeek; //int 
-	myDayOfMonth; // int
-	myMonth; //int
-	myOffset; //int
-	
-	myAbsolute=false; //boolean
-	myRelative=false; //boolean
-	
 	constructor (dayOfWeek, week, reference, offset, dayOfMonth, month) {
+		this.myAbsolute; 
+		this.myRelative; 
+	
 		if(dayOfWeek) {
 			this.myReference=reference;
 			this.myDayOfWeek=dayOfWeek;
@@ -337,7 +323,7 @@ Day = class {
 		}
 	}
 
-	getOffset = function (calendar) {
+	getOffset(calendar) {
 		if(this.myAbsolute) { // Sollte nicht vorkommen
 			return 0;
 		}
@@ -356,15 +342,15 @@ Day = class {
 		}	
 	}	
 
-	getJulianDate = function(year) {
+	getJulianDate(year) {
 		return this.getDate(year,true);
 	}
 
-	getGregorianDate = function(year) {
+	getGregorianDate(year) {
 		return this.getDate(year,false);
 	}
 	
-	getDate = function(year, julian) {
+	getDate(year, julian) {
 		if(this.myReference==null) {
 			return new GregorianCalendar(year,this.myMonth,this.myDayOfMonth,julian);
 		}
@@ -373,12 +359,12 @@ Day = class {
 		}		
 	}
 
-	getCalendarDate = function(cal) {
+	getCalendarDate(cal) {
 		cal.add(Calendar.DAY_OF_YEAR,this.getOffset(cal));		
 		return cal;
 	}
 	
-	getDayOfWeek = function(calendar) {
+	getDayOfWeek(calendar) {
 		if(this.myRelative) { // Wochentag schon vorhanden
 			return this.myDayOfWeek;
 		}
@@ -402,11 +388,11 @@ ChurchDay = class extends Day {
 		this.myName=name;
 	}
 
-	toString = function() {
+	toString() {
 		return this.getName();
 	}
 	
-	getName  = function() {
+	getName () {
 		return this.myName;
 	}
 }
@@ -416,7 +402,7 @@ Advent = class extends ChurchDay {
 		super("1. Advent",7,0,null);
 	}
 
-	getDate = function(year, julian) {
+	getDate(year, julian) {
 		let calendar=new GregorianCalendar(year,12,25,julian); // 1. Weihnachtstag
 		calendar.add(Calendar.DAY_OF_YEAR,-4*7); // 4 Wochen zurück
 		while (calendar.get(Calendar.DAY_OF_WEEK)!= Calendar.SUNDAY)
@@ -430,7 +416,7 @@ Easter = class extends ChurchDay {
 		super("Ostern", 7,0, null);
 	}
 
-	getDate = function (year, julian) {
+	getDate(year, julian) {
 		//https://de.wikipedia.org/wiki/Gau%C3%9Fsche_Osterformel#Eine_erg%C3%A4nzte_Osterformel
 		let X=year;
 		// 1.	die Säkularzahl	
@@ -469,7 +455,7 @@ MonthDay = class extends ChurchDay {
 		this.myRelative=true;
 	}
 
-	getDate = function(year, julian) {		
+	getDate(year, julian) {		
 		let calendar=this.getCalendar(julian);
 		calendar.set(year,this.myMonth,1);
 
@@ -485,7 +471,7 @@ MonthDay = class extends ChurchDay {
 	}
 }
 
-loadChurchDays = function()
+function loadChurchDays()
 {
 	const easter = new Easter();
 	const advent = new Advent();

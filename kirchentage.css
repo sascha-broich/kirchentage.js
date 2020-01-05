@@ -81,17 +81,86 @@ section > .row > *:not(:first-child) {
         text-align: center;
     }
 
-    section#alter div:nth-child(2n) {
-        margin-left: 1em;
-    }
-    
     select.showAll {
         height: auto;
         overflow-y: auto;
-        scrollbar-width: none;
+        border:none;
+    	scrollbar-width: none;
     }
 
+    select.showAll[size="20"]{
+        border: 1px solid black;
+        scrollbar-width: auto;
+    }
+
+    select.showAll:not([size="20"]) option {
+        border-right: 1px solid black;
+        border-left: 1px solid black;
+    }
+
+    select.showAll:not([size="20"]) option:first-child {
+        border-top: 1px solid black;
+    }
+
+    select.showAll:not([size="20"]) option:last-child {
+        border-bottom: 1px solid black;
+    }
+
+    section#alter > .row:nth-child(2) > input {
+        margin-left: 15px;
+        width: 10.5em;
+    }
+
+    section#alter > .row:nth-child(2) > label {
+        margin-right: .5em;
+        width: 4em;
+    }
 }    
+
+@media screen and (min-width: 416px) {
+    section#alter > .row:nth-child(2) > input {
+        margin-left: 15px;
+        width: 10.5em;
+    }
+
+    section#alter > .row:nth-child(2) > label {
+        margin-right: 8em;
+        width: 4em;
+    }
+}
+
+@media screen and (min-width: 525px) {
+    section#alter > .row:nth-child(2) > input {
+        margin-left: 15px;
+        width: 10.5em;
+    }
+
+    section#alter > .row:nth-child(2) > label {
+        margin-right: 0.5em;
+        width: 3em;
+    }
+}
+
+@media screen and (min-width: 556px) {
+    section#alter div:nth-child(2n) {
+        margin-left: 1em;
+    }
+
+    section#alter > .row:nth-child(2) > input {
+        margin: 0 0 0 .5em;
+        width: 5em;
+    }
+
+    section#alter > .row:nth-child(2) > input:first-child {
+        margin-left: 0;
+    }
+
+    section#alter > .row:nth-child(2) > label {
+        margin: 0 0 0 .5em;
+        width: auto;
+    }
+}
+
 
 section#wochentage #wochentage-kalender {
     display: grid;

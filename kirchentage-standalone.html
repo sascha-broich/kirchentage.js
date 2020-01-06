@@ -145,10 +145,9 @@
 
 			GregorianCalendar = class {
 				constructor(year, month, day, julian=false) {
-					this.julian=false;
 					this.firstGregorianDay=2299159.5;
 					this.switchDate=this.calc(this.firstGregorianDay);
-
+				
 					this.setJulian(julian);
 					this.set(year,month,day);
 				}
@@ -310,8 +309,9 @@
 
 			Day = class {
 				constructor (dayOfWeek, week, reference, offset, dayOfMonth, month) {
-					this.myAbsolute=false;
-					this.myRelative=false;
+					this.myAbsolute; 
+					this.myRelative; 
+				
 					if(dayOfWeek) {
 						this.myReference=reference;
 						this.myDayOfWeek=dayOfWeek;
@@ -325,7 +325,7 @@
 					else if(dayOfMonth) {
 						this.myReference=null;
 						this.myDayOfMonth=dayOfMonth;
-						this.myMonth=month; 
+						this.myMonth=month; // Umrechnung für Calendar
 						this.myAbsolute=true;
 					}
 				}
@@ -388,6 +388,8 @@
 			}
 
 			ChurchDay = class extends Day {
+				myName; // String
+				
 				constructor(name, dayOfWeek, week, reference, dayOfMonth, month) {
 					super(dayOfWeek,week,reference,null,dayOfMonth,month);
 					this.myName=name;
@@ -397,7 +399,7 @@
 					return this.getName();
 				}
 				
-				getName() {
+				getName () {
 					return this.myName;
 				}
 			}
@@ -564,14 +566,23 @@
 						let kirchentagTag = document.getElementById("kirchentag-tag");
 						while(kirchentagTag.firstChild)
 							kirchentagTag.firstChild.remove();
+						let first=true;
 						myDays.forEach(day => {
-							let option=document.createElement("option");
-							option.textContent=day.getName();
-							option.value=day;
-							option.ktt=day;
-							kirchentagTag.appendChild(option);
+							let button=document.createElement("input");
+							button.type="radio";
+							button.name="kirchentag-tag";
+							button.value=day;
+							button.ktt=day;
+							button.style.display="none";
+							button.id=day.toString().replace(/\W/g,"_");
+							button.checked=first;
+							first=false;
+							kirchentagTag.appendChild(button);
+							let label=document.createElement("label");
+							label.textContent=day.toString();
+							label.htmlFor=button.id;
+							kirchentagTag.appendChild(label);
 						});
-						kirchentagTag.value=kirchentagTag.firstChild.value;
 					}
 					addTriggers();
 					calculateKirchentag();
@@ -591,11 +602,10 @@
 
 			function calculateKirchentag() {
 				let num=parseInt(document.getElementById("kirchentag-number").value);
-				let dow=document.getElementById("kirchentag-dow").selectedIndex;
-				let rel=parseInt(document.getElementById("kirchentag-rel").value);
+				let dow=parseInt(document.querySelector("#kirchentag-dow > input:checked").value);
+				let rel=parseInt(document.querySelector("#kirchentag-rel > input:checked").value);
 				let jahr=parseInt(document.getElementById("kirchentag-jahr").value);
-				let ktt=document.getElementById("kirchentag-tag");
-				let tag=ktt.options[ktt.selectedIndex].ktt;
+				let tag=document.querySelector('#kirchentag-tag > input:checked').ktt;
 
 				console.log("calculateKirchentag{");
 				console.log("num: "+num+", dow: "+dow+", rel: "+rel+", tag: "+tag+", jahr: "+jahr);
@@ -720,6 +730,7 @@
 				setDaysOfMonth();
 				loadChurchDays();	
 			}
+
 		</script>
 		<style type="text/css">
 			input, select, button {
@@ -785,6 +796,84 @@
 				margin: .5em 0 0 0;
 			}
 
+
+
+			section#wochentage #wochentage-kalender {
+				display: grid;
+				grid-template-columns: repeat(7, 3em);
+				grid-gap: 0px;
+			}
+
+			section#wochentage #wochentage-kalender > .dom {
+				height: 2.5em;
+				line-height: 2.5em;
+				border: solid 1px black;
+			}
+
+			section#wochentage #wochentage-kalender > span {
+				font-weight: bold;
+				background: lightgray;
+				text-align: center;
+				padding-top: .1em;
+			}
+
+			section#wochentage #wochentage-kalender > button {
+				text-align: right;
+			}
+
+			div.showAll {
+				display: inline-flex;
+				flex-wrap: wrap;
+				border: 1px solid black;
+			}
+
+			div.showAll input {
+				display: none;
+			}
+
+			div.showAll label {
+				flex-grow: 0;
+				flex-shrink: 0;
+				flex-basis: 100%;
+				line-height: 1.75em;
+				padding-left: 0.25em;
+				box-sizing: border-box;
+			}
+
+			div#kirchentag-dow {
+				width: 6em;
+				height: 15em;
+			}
+
+			div#kirchentag-rel {
+				width: 3.5em;
+				height: 6em;
+			}
+			section#kirchentag table th {
+				text-align: left;    
+				padding: .5em;
+			}
+
+			section#kirchentag table th:after {
+				content: ":";
+			}
+
+			section#kirchentag table td {
+				border: solid 1px grey;
+				padding: .5em;
+			}
+
+			div.showAll input:checked + label {
+				background-color: lightgray;
+			}
+
+			section#kirchentag #kirchentag-tag {
+				width: 13em;
+				height: 15em;
+				overflow-y: auto;
+			}
+
+
 			@media screen and (min-width: 321px) {
 				section > .row {
 					display: flex;
@@ -812,24 +901,6 @@
 					scrollbar-width: none;
 				}
 
-				select.showAll[size="20"]{
-					border: 1px solid black;
-					scrollbar-width: auto;
-				}
-
-				select.showAll:not([size="20"]) option {
-					border-right: 1px solid black;
-					border-left: 1px solid black;
-				}
-
-				select.showAll:not([size="20"]) option:first-child {
-					border-top: 1px solid black;
-				}
-
-				select.showAll:not([size="20"]) option:last-child {
-					border-bottom: 1px solid black;
-				}
-
 				section#alter > .row:nth-child(2) > input {
 					margin-left: 15px;
 					width: 10.5em;
@@ -838,6 +909,12 @@
 				section#alter > .row:nth-child(2) > label {
 					margin-right: .5em;
 					width: 4em;
+				}
+
+				section#kirchentag #kirchentag-tag {
+					width: 12em;
+					height: 15em;
+					overflow-y: auto;
 				}
 			}    
 
@@ -885,47 +962,82 @@
 				}
 			}
 
-
-			section#wochentage #wochentage-kalender {
-				display: grid;
-				grid-template-columns: repeat(7, 3em);
-				grid-gap: 0px;
+			@media screen and (min-width: 860px) {
+				section#kirchentag #kirchentag-tag {
+					height: auto;
+				}
 			}
 
-			section#wochentage #wochentage-kalender > .dom {
-				height: 2.5em;
-				line-height: 2.5em;
-				border: solid 1px black;
+			@media screen and (min-width: 1024px) {
+				section#kirchentag #kirchentag-tag {
+					width: 23em;
+				}
+				section#kirchentag #kirchentag-tag label {
+					flex-basis: 50%;
+				}
 			}
 
-			section#wochentage #wochentage-kalender > span {
-				font-weight: bold;
-				background: lightgray;
-				text-align: center;
-				padding-top: .1em;
+			@media screen and (min-width: 1280px) {
+				section#kirchentag #kirchentag-tag {
+					width: 35em;
+				}
+				section#kirchentag #kirchentag-tag label {
+					flex-basis: 33.33%;
+				}
 			}
 
-			section#wochentage #wochentage-kalender > button {
-				text-align: right;
+			@media screen and (min-width: 1440px) {
+				section#kirchentag #kirchentag-tag {
+					width: 47em;
+				}
+				section#kirchentag #kirchentag-tag label {
+					flex-basis: 25%;
+				}
 			}
 
-			select.showAll > option {
-				height: 1em;
-				padding: .5em;
+			@media screen and (min-width: 1600px) {
+				section#kirchentag #kirchentag-tag {
+					width: 59em;
+				}
+				section#kirchentag #kirchentag-tag label {
+					flex-basis: 20%;
+				}
 			}
 
-			section#kirchentag table th {
-				text-align: left;    
-				padding: .5em;
+			@media screen and (min-width: 1800px) {
+				section#kirchentag #kirchentag-tag {
+					width: 71em;
+				}
+				section#kirchentag #kirchentag-tag label {
+					flex-basis: 16.66%;
+				}
 			}
 
-			section#kirchentag table th:after {
-				content: ":";
+			@media screen and (min-width: 2000px) {
+				section#kirchentag #kirchentag-tag {
+					width: 83em;
+				}
+				section#kirchentag #kirchentag-tag label {
+					flex-basis: 14.28%;
+				}
 			}
 
-			section#kirchentag table td {
-				border: solid 1px grey;
-				padding: .5em;
+			@media screen and (min-width: 2200px) {
+				section#kirchentag #kirchentag-tag {
+					width: 95em;
+				}
+				section#kirchentag #kirchentag-tag label {
+					flex-basis: 12.5%;
+				}
+			}
+
+			@media screen and (min-width: 2400px) {
+				section#kirchentag #kirchentag-tag {
+					width: 107em;
+				}
+				section#kirchentag #kirchentag-tag label {
+					flex-basis: 11.11%;
+				}
 			}
 		</style>
 			
@@ -998,25 +1110,25 @@
 			<div class="row">
 				<input type="number" id="kirchentag-number" value="1"/>
 				<label for="kirchentag-number">.</label>
-				<select id="kirchentag-dow" class="showAll" size="8">
-					<option value="0" selected>Tag</option>
-					<option value="1">Montag</option>
-					<option value="2">Dienstag</option>
-					<option value="3">Mittwoch</option>
-					<option value="4">Donnerstag</option>
-					<option value="5">Freitag</option>
-					<option value="6">Samstag</option>
-					<option value="7">Sonntag</option>
-				</select>
-				<select id="kirchentag-rel" class="showAll" size="3">
-					<option value="-1">vor</option>
-					<option value="0" selected>genau</option>
-					<option value="1">nach</option>
-				</select>
-				<select id="kirchentag-tag" class="showAll" size="20">
-					<option selected>Ostern</option>
-					<option>Weihnachten</option>
-				</select>
+				<div id="kirchentag-dow" class="showAll">
+					<input type="radio" name="kirchentag-dow" value="0" id="Tag" checked/><label for="Tag">Tag</label>
+					<input type="radio" name="kirchentag-dow" value="1" id="Montag"/><label for="Montag">Montag</label>
+					<input type="radio" name="kirchentag-dow" value="2" id="Dienstag"/><label for="Dienstag">Dienstag</label>
+					<input type="radio" name="kirchentag-dow" value="3" id="Mittwoch"/><label for="Mittwoch">Mittwoch</label>
+					<input type="radio" name="kirchentag-dow" value="4" id="Donnerstag"/><label for="Donnerstag">Donnerstag</label>
+					<input type="radio" name="kirchentag-dow" value="5" id="Freitag"/><label for="Freitag">Freitag</label>
+					<input type="radio" name="kirchentag-dow" value="6" id="Samstag"/><label for="Samstag">Samstag</label>
+					<input type="radio" name="kirchentag-dow" value="7" id="Sonntag"/><label for="Sonntag">Sonntag</label>
+				</div>
+				<div id="kirchentag-rel" class="showAll">
+					<input type="radio" name="kirchentag-rel" value="-1" id="vor"/><label for="vor">vor</label>
+					<input type="radio" name="kirchentag-rel" value="0" id="genau"/ checked><label for="genau">genau</label>
+					<input type="radio" name="kirchentag-rel" value="1" id="nach"/><label for="nach">nach</label>
+				</div>
+				<div id="kirchentag-tag" class="showAll">
+					<input type="radio" name="kirchentag-tag" value="Ostern" id="Ostern" checked/><label for="Ostern>Ostern</label>
+					<input type="radio" name="kirchentag-tag" >Weihnachten</input>
+				</div>
 				<input type="number" id="kirchentag-jahr" title="Jahr" value="2020"/>
 				<table>
 					<tbody>

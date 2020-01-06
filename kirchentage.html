@@ -74,25 +74,25 @@
 			<div class="row">
 				<input type="number" id="kirchentag-number" value="1"/>
 				<label for="kirchentag-number">.</label>
-				<select id="kirchentag-dow" class="showAll" size="8">
-					<option value="0" selected>Tag</option>
-					<option value="1">Montag</option>
-					<option value="2">Dienstag</option>
-					<option value="3">Mittwoch</option>
-					<option value="4">Donnerstag</option>
-					<option value="5">Freitag</option>
-					<option value="6">Samstag</option>
-					<option value="7">Sonntag</option>
-				</select>
-				<select id="kirchentag-rel" class="showAll" size="3">
-					<option value="-1">vor</option>
-					<option value="0" selected>genau</option>
-					<option value="1">nach</option>
-				</select>
-				<select id="kirchentag-tag" class="showAll" size="20">
-					<option selected>Ostern</option>
-					<option>Weihnachten</option>
-				</select>
+				<div id="kirchentag-dow" class="showAll">
+					<input type="radio" name="kirchentag-dow" value="0" id="Tag" checked/><label for="Tag">Tag</label>
+					<input type="radio" name="kirchentag-dow" value="1" id="Montag"/><label for="Montag">Montag</label>
+					<input type="radio" name="kirchentag-dow" value="2" id="Dienstag"/><label for="Dienstag">Dienstag</label>
+					<input type="radio" name="kirchentag-dow" value="3" id="Mittwoch"/><label for="Mittwoch">Mittwoch</label>
+					<input type="radio" name="kirchentag-dow" value="4" id="Donnerstag"/><label for="Donnerstag">Donnerstag</label>
+					<input type="radio" name="kirchentag-dow" value="5" id="Freitag"/><label for="Freitag">Freitag</label>
+					<input type="radio" name="kirchentag-dow" value="6" id="Samstag"/><label for="Samstag">Samstag</label>
+					<input type="radio" name="kirchentag-dow" value="7" id="Sonntag"/><label for="Sonntag">Sonntag</label>
+				</div>
+				<div id="kirchentag-rel" class="showAll">
+					<input type="radio" name="kirchentag-rel" value="-1" id="vor"/><label for="vor">vor</label>
+					<input type="radio" name="kirchentag-rel" value="0" id="genau"/ checked><label for="genau">genau</label>
+					<input type="radio" name="kirchentag-rel" value="1" id="nach"/><label for="nach">nach</label>
+				</div>
+				<div id="kirchentag-tag" class="showAll">
+					<input type="radio" name="kirchentag-tag" value="Ostern" id="Ostern" checked/><label for="Ostern>Ostern</label>
+					<input type="radio" name="kirchentag-tag" >Weihnachten</input>
+				</div>
 				<input type="number" id="kirchentag-jahr" title="Jahr" value="2020"/>
 				<table>
 					<tbody>

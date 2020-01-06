@@ -559,14 +559,23 @@ function loadChurchDays()
 			let kirchentagTag = document.getElementById("kirchentag-tag");
 			while(kirchentagTag.firstChild)
 				kirchentagTag.firstChild.remove();
+			let first=true;
 			myDays.forEach(day => {
-				let option=document.createElement("option");
-				option.textContent=day.getName();
-				option.value=day;
-				option.ktt=day;
-				kirchentagTag.appendChild(option);
+				let button=document.createElement("input");
+				button.type="radio";
+				button.name="kirchentag-tag";
+				button.value=day;
+				button.ktt=day;
+				button.style.display="none";
+				button.id=day.toString().replace(/\W/g,"_");
+				button.checked=first;
+				first=false;
+				kirchentagTag.appendChild(button);
+				let label=document.createElement("label");
+				label.textContent=day.toString();
+				label.htmlFor=button.id;
+				kirchentagTag.appendChild(label);
 			});
-			kirchentagTag.value=kirchentagTag.firstChild.value;
 		}
 		addTriggers();
 		calculateKirchentag();
@@ -586,11 +595,10 @@ function addTriggers() {
 
 function calculateKirchentag() {
 	let num=parseInt(document.getElementById("kirchentag-number").value);
-	let dow=document.getElementById("kirchentag-dow").selectedIndex;
-	let rel=parseInt(document.getElementById("kirchentag-rel").value);
+	let dow=parseInt(document.querySelector("#kirchentag-dow > input:checked").value);
+	let rel=parseInt(document.querySelector("#kirchentag-rel > input:checked").value);
 	let jahr=parseInt(document.getElementById("kirchentag-jahr").value);
-	let ktt=document.getElementById("kirchentag-tag");
-	let tag=ktt.options[ktt.selectedIndex].ktt;
+	let tag=document.querySelector('#kirchentag-tag > input:checked').ktt;
 
 	console.log("calculateKirchentag{");
 	console.log("num: "+num+", dow: "+dow+", rel: "+rel+", tag: "+tag+", jahr: "+jahr);

@@ -97,12 +97,13 @@ div.showAll input {
 }
 
 div.showAll label {
-    flex-grow: 0;
-    flex-shrink: 0;
-    flex-basis: 100%;
+    /* flex-grow: 0; */
+    /* flex-shrink: 0; */
+    /* flex-basis: 100%; */
     line-height: 1.75em;
     padding-left: 0.25em;
     box-sizing: border-box;
+    width: 12.5em;
 }
 
 div#kirchentag-dow {
@@ -135,7 +136,7 @@ div.showAll input:checked + label {
 section#kirchentag #kirchentag-tag {
     width: 13em;
     height: 15em;
-    overflow-y: auto;
+    overflow: auto;
 }
 
 
@@ -174,12 +175,6 @@ section#kirchentag #kirchentag-tag {
     section#alter > .row:nth-child(2) > label {
         margin-right: .5em;
         width: 4em;
-    }
-
-    section#kirchentag #kirchentag-tag {
-        width: 12em;
-        height: 15em;
-        overflow-y: auto;
     }
 }    
 
@@ -226,81 +221,11 @@ section#kirchentag #kirchentag-tag {
         width: auto;
     }
 }
-
-@media screen and (min-width: 860px) {
+@media screen and (min-width: 880px) {
     section#kirchentag #kirchentag-tag {
-        height: auto;
-    }
-}
-
-@media screen and (min-width: 1024px) {
-    section#kirchentag #kirchentag-tag {
-        width: 23em;
-    }
-    section#kirchentag #kirchentag-tag label {
-        flex-basis: 50%;
-    }
-}
-
-@media screen and (min-width: 1280px) {
-    section#kirchentag #kirchentag-tag {
-        width: 35em;
-    }
-    section#kirchentag #kirchentag-tag label {
-        flex-basis: 33.33%;
-    }
-}
-
-@media screen and (min-width: 1440px) {
-    section#kirchentag #kirchentag-tag {
-        width: 47em;
-    }
-    section#kirchentag #kirchentag-tag label {
-        flex-basis: 25%;
-    }
-}
-
-@media screen and (min-width: 1600px) {
-    section#kirchentag #kirchentag-tag {
-        width: 59em;
-    }
-    section#kirchentag #kirchentag-tag label {
-        flex-basis: 20%;
-    }
-}
-
-@media screen and (min-width: 1800px) {
-    section#kirchentag #kirchentag-tag {
-        width: 71em;
-    }
-    section#kirchentag #kirchentag-tag label {
-        flex-basis: 16.66%;
-    }
-}
-
-@media screen and (min-width: 2000px) {
-    section#kirchentag #kirchentag-tag {
-        width: 83em;
-    }
-    section#kirchentag #kirchentag-tag label {
-        flex-basis: 14.28%;
-    }
-}
-
-@media screen and (min-width: 2200px) {
-    section#kirchentag #kirchentag-tag {
-        width: 95em;
-    }
-    section#kirchentag #kirchentag-tag label {
-        flex-basis: 12.5%;
-    }
-}
-
-@media screen and (min-width: 2400px) {
-    section#kirchentag #kirchentag-tag {
-        width: 107em;
-    }
-    section#kirchentag #kirchentag-tag label {
-        flex-basis: 11.11%;
+        display: flex;
+        flex-flow: column wrap;
+        height: calc(100vh - 120px);
+        flex-grow: 1;
     }
 }
